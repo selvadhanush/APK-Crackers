@@ -4,6 +4,10 @@ import { createNotification } from "./notificationController.js";
 
 export const uploadKYC = async (req, res) => {
   try {
+    console.log("📦 req.files:", req.files);
+console.log("📦 req.body:", req.body);
+console.log("📦 content-type:", req.headers["content-type"]);
+
     const sellerId = req.user._id;
     const files = req.files;
 
