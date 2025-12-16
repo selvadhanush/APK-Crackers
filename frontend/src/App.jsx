@@ -9,6 +9,7 @@ import SellerLogin from './components/Seller/components/SellerLogin'
 import SellerHome from "./components/Seller/Seller/SellerHome"
 import Productview from './components/Prouductview'
 import Payment from './components/Payment'
+import Checkout from './components/Checkout'
 import Cart from './components/Cart'
 import AdminHome from './components/Admin/Adminpages/Adminhome'
 import Adminlogin from './components/Admin/components/Adminlogin'
@@ -23,7 +24,8 @@ function App() {
         <Route path="/Settings" element={<Settings />} />
         <Route path="/Cart" element={<Cart />} />
         <Route path="/product/:id" element={<Productview />} />
-        <Route path="/checkout" element={<Payment />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/payment" element={<Payment />} />
         <Route path="/seller-login" element={<SellerLogin />} />
         <Route path="/seller-register" element={<SellerRegister />} />
         <Route path="/seller-home" element={<SellerHome />} />

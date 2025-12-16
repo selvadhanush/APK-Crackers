@@ -45,58 +45,35 @@ Authorization: Bearer <JWT_TOKEN>
 
 # 👤 CUSTOMER APIs
 
-## 1️⃣ Customer Authentication
+### 1. Admin Authentication
+- **Register**: `POST /api/admin/auth/register`
+- **Login**: `POST /api/admin/auth/login`
+  - Body: `{"username": "admin", "password": "password"}` (Note: Uses username, not email)
 
-### Register Customer
+### 2. Seller Authentication
+- **Register**: `POST /api/seller/auth/signup`
+- **Login**: `POST /api/seller/auth/login`
 
-```
-POST /api/customer/auth/register
-```
-
-**Body**
-
-```json
-{
-  "name": "Ravi",
-  "email": "ravi@test.com",
-  "phone": "9876543210",
-  "password": "password123"
-}
-```
-
-### Login Customer
-
-```
-POST /api/customer/auth/login
-```
+### 3. Customer Authentication
+- **Register**: `POST /api/customer/auth/register`
+- **Login**: `POST /api/customer/auth/login`
 
 ---
 
-## 2️⃣ Customer Product Browsing
+## 🛍️ Product Endpoints
 
-### Get All Approved Products
+### Customer
+- **Get All Products**: `GET /api/products/customer/`
+- **Get Product by ID**: `GET /api/products/customer/product/:id`
+- **Search**: `GET /api/products/customer/search?q=query`
 
-```
-GET /api/products/customer/all
-```
+---
 
-### Get Product by ID
+## 📦 Order Endpoints
 
-```
-GET /api/products/customer/:productId
-```
-
-### Search Products
-
-```
-GET /api/search?q=flower
-```
-
-### Filter by Category
-
-```
-GET /api/products/customer/category/:categoryName
-```
+### Customer
+- **Create Order**: `POST /api/orders/create`
+- **Get My Orders**: `GET /api/orders` (Headers: `Authorization: Bearer <token>`)
 
 ---
 

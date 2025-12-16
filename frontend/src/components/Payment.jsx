@@ -25,8 +25,13 @@ const Payment = () => {
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
+        if (!shippingAddress) {
+            // Redirect to checkout if no address is provided
+            navigate('/checkout');
+            return;
+        }
         createOrder();
-    }, []);
+    }, [shippingAddress, navigate]);
 
     const createOrder = async () => {
         try {
@@ -85,7 +90,7 @@ const Payment = () => {
             }
 
             // Create Razorpay order
-            const { data } = await API.post('/payment/order', { orderId: order._id });
+            const { data } = await API.post('/payment/create', { orderId: order._id });
 
             const options = {
                 key: data.razorpayKey,

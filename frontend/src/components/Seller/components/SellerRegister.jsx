@@ -65,7 +65,7 @@ const SellerRegister = () => {
                 businessAddress: formData.businessAddress
             };
 
-            const response = await API.post('/seller/auth/register', registrationData);
+            const response = await API.post('/seller/auth/signup', registrationData);
 
             if (response.data.token) {
                 // Store token in localStorage
@@ -281,8 +281,8 @@ const SellerRegister = () => {
                                 type="submit"
                                 disabled={loading}
                                 className={`flex-1 px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 ${loading
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30 hover:shadow-xl'
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30 hover:shadow-xl'
                                     }`}
                             >
                                 <MdCheckCircle className="w-5 h-5" />
