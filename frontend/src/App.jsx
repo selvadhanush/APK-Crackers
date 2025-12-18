@@ -11,6 +11,7 @@ import SellerLogin from './components/Seller/components/SellerLogin'
 import SellerHome from "./components/Seller/Seller/SellerHome"
 import Productview from './components/Prouductview'
 import Payment from './components/Payment'
+import Checkout from './components/Checkout'
 import Cart from './components/Cart'
 import Wishlist from './components/Wishlist'
 import SearchResults from './pages/SearchResults'

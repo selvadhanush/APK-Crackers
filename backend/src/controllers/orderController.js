@@ -86,3 +86,35 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ==============================
+// ⭐ GET MY ORDERS (CUSTOMER)
+// ==============================
+export const getMyOrders = async (req, res) => {
+  try {
+    const customerId = req.user._id;
+
+    const orders = await Order.find({ customerId })
+      .populate({
+        path: "items.productId",
+        select: "name price images category"
+      })
+      .populate({
+        path: "sellerId",
+        select: "businessName email phone"
+      })
+      .sort({ createdAt: -1 }); // Most recent first
+
+    res.json({
+      count: orders.length,
+      orders
+    });
+
+  } catch (err) {
+    res.status(500).json({ 
+      message: "Failed to fetch orders",
+      error: err.message 
+    });
+  }
+};
+
