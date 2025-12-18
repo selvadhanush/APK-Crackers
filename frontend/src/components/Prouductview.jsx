@@ -13,11 +13,26 @@ const Productview = () => {
     const [similarProducts, setSimilarProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isInWishlist, setIsInWishlist] = useState(false);
+    const [togglingWishlist, setTogglingWishlist] = useState(false);
+    const [isInCart, setIsInCart] = useState(false);
+
+    // Review states
+    const [reviews, setReviews] = useState([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewForm, setReviewForm] = useState({ rating: 5, reviewText: '' });
+    const [editingReview, setEditingReview] = useState(null);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [userReview, setUserReview] = useState(null);
 
     useEffect(() => {
         if (id) {
             fetchProduct();
             fetchSimilarProducts();
+            checkWishlistStatus();
+            checkCartStatus();
+            fetchReviews();
         }
     }, [id]);
 
@@ -47,6 +62,73 @@ const Productview = () => {
         }
     };
 
+    const checkWishlistStatus = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await API.get('/wishlist');
+            // Backend returns array directly, not wrapped in object
+            const wishlistProductIds = (Array.isArray(response.data) ? response.data : []).map(item => item.productId._id);
+            setIsInWishlist(wishlistProductIds.includes(id));
+        } catch (error) {
+            console.error('Error checking wishlist:', error);
+        }
+    };
+
+    const toggleWishlist = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login to add items to wishlist');
+            navigate('/Login');
+            return;
+        }
+
+        setTogglingWishlist(true);
+
+        try {
+            if (isInWishlist) {
+                await API.delete(`/wishlist/remove/${id}`);
+                setIsInWishlist(false);
+                alert('Removed from wishlist');
+            } else {
+                await API.post('/wishlist/add', { productId: id });
+                setIsInWishlist(true);
+                alert('Added to wishlist!');
+            }
+        } catch (error) {
+            console.error('Wishlist error:', error);
+            if (error.response?.status === 401) {
+                alert('Session expired. Please login again');
+                navigate('/Login');
+            } else if (error.response?.status === 400 && error.response?.data?.message === 'Already in wishlist') {
+                // Item already in wishlist, just update UI
+                setIsInWishlist(true);
+                alert('Already in wishlist');
+            } else {
+                alert(error.response?.data?.message || 'Failed to update wishlist');
+            }
+        } finally {
+            setTogglingWishlist(false);
+        }
+    };
+
+    const checkCartStatus = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await API.get('/cart');
+            const cartItems = response.data.items || [];
+            const productInCart = cartItems.some(item =>
+                (item.productId?._id || item.productId) === id
+            );
+            setIsInCart(productInCart);
+        } catch (error) {
+            console.error('Error checking cart:', error);
+        }
+    };
+
     const handleQuantityChange = (action) => {
         if (!product) return;
         if (action === 'increase' && quantity < product.stock) {
@@ -56,8 +138,22 @@ const Productview = () => {
         }
     };
 
-    const handlePlaceOrder = () => {
-        navigate('/checkout', { state: { product, quantity } });
+    const handlePlaceOrder = async () => {
+        try {
+            // Always add/update cart with current quantity
+            // The backend will update quantity if product already exists in cart
+            await API.post('/cart/add', {
+                productId: product._id,
+                quantity
+            });
+            setIsInCart(true); // Mark as in cart
+
+            // Navigate to payment page
+            navigate('/Payment');
+        } catch (error) {
+            console.error('Buy now error:', error);
+            alert('Failed to process. Please try again.');
+        }
     };
 
     const handleAddToCart = async () => {
@@ -66,11 +162,127 @@ const Productview = () => {
                 productId: product._id,
                 quantity
             });
-            alert('Added to cart successfully!');
+            setIsInCart(true); // Update state
+            alert(`Added ${quantity} item(s) to cart successfully!`);
         } catch (error) {
             console.error('Add to cart error:', error);
-            alert('Failed to add to cart');
+            alert(error.response?.data?.message || 'Failed to add to cart');
         }
+    };
+
+    // Review Functions
+    const fetchReviews = async () => {
+        try {
+            setLoadingReviews(true);
+            const response = await API.get(`/reviews/${id}`);
+            setReviews(Array.isArray(response.data) ? response.data : []);
+
+            // Check if current user has reviewed
+            const token = localStorage.getItem('token');
+            if (token) {
+                const userId = JSON.parse(localStorage.getItem('user'))?._id;
+                const myReview = response.data.find(r => r.customerId._id === userId);
+                setUserReview(myReview || null);
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
+
+    const handleAddReview = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login to add a review');
+            navigate('/Login');
+            return;
+        }
+
+        setSubmittingReview(true);
+        try {
+            await API.post('/reviews/add', {
+                productId: id,
+                rating: reviewForm.rating,
+                reviewText: reviewForm.reviewText
+            });
+            alert('Review added successfully!');
+            setShowReviewForm(false);
+            setReviewForm({ rating: 5, reviewText: '' });
+            fetchReviews();
+            fetchProduct(); // Refresh product to get updated rating
+        } catch (error) {
+            console.error('Add review error:', error);
+            alert(error.response?.data?.message || 'Failed to add review');
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    const handleUpdateReview = async (e) => {
+        e.preventDefault();
+        setSubmittingReview(true);
+        try {
+            await API.put(`/reviews/update/${editingReview}`, {
+                rating: reviewForm.rating,
+                reviewText: reviewForm.reviewText
+            });
+            alert('Review updated successfully!');
+            setShowReviewForm(false);
+            setEditingReview(null);
+            setReviewForm({ rating: 5, reviewText: '' });
+            fetchReviews();
+            fetchProduct();
+        } catch (error) {
+            console.error('Update review error:', error);
+            alert(error.response?.data?.message || 'Failed to update review');
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    const handleDeleteReview = async (reviewId) => {
+        if (!confirm('Are you sure you want to delete your review?')) return;
+
+        try {
+            await API.delete(`/reviews/delete/${reviewId}`);
+            alert('Review deleted successfully!');
+            fetchReviews();
+            fetchProduct();
+        } catch (error) {
+            console.error('Delete review error:', error);
+            alert(error.response?.data?.message || 'Failed to delete review');
+        }
+    };
+
+    const openEditReview = (review) => {
+        setEditingReview(review._id);
+        setReviewForm({
+            rating: review.rating,
+            reviewText: review.reviewText
+        });
+        setShowReviewForm(true);
+    };
+
+    const closeReviewForm = () => {
+        setShowReviewForm(false);
+        setEditingReview(null);
+        setReviewForm({ rating: 5, reviewText: '' });
+    };
+
+    const calculateAverageRating = () => {
+        if (reviews.length === 0) return 0;
+        const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+        return (sum / reviews.length).toFixed(1);
+    };
+
+    const getRatingDistribution = () => {
+        const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        reviews.forEach(review => {
+            distribution[review.rating]++;
+        });
+        return distribution;
     };
 
     if (loading) {
@@ -117,8 +329,19 @@ const Productview = () => {
                                     className="w-full h-[500px] object-contain p-8"
                                 />
                                 <div className="absolute bottom-4 right-4 flex gap-2">
-                                    <button className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors">
-                                        <FaHeart className="w-5 h-5 text-gray-700" />
+                                    <button
+                                        onClick={toggleWishlist}
+                                        disabled={togglingWishlist}
+                                        className="p-3 bg-white rounded-full shadow-lg hover:scale-110 transition-all"
+                                    >
+                                        {togglingWishlist ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                                        ) : (
+                                            <FaHeart className={`w-5 h-5 transition-all ${isInWishlist
+                                                ? 'text-red-500 animate-pulse'
+                                                : 'text-gray-400 hover:text-red-400'
+                                                }`} />
+                                        )}
                                     </button>
                                     <button className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors">
                                         <FaShare className="w-5 h-5 text-gray-700" />
@@ -258,6 +481,231 @@ const Productview = () => {
                     </div>
                 </div>
 
+                {/* Reviews Section */}
+                <div className="mt-12 pt-8 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+                        {!userReview && (
+                            <button
+                                onClick={() => setShowReviewForm(true)}
+                                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
+                            >
+                                Write a Review
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Rating Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        {/* Average Rating */}
+                        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200">
+                            <div className="text-center">
+                                <div className="text-5xl font-bold text-gray-900 mb-2">
+                                    {calculateAverageRating()}
+                                </div>
+                                <div className="flex items-center justify-center gap-1 mb-2">
+                                    {[...Array(5)].map((_, index) => (
+                                        <FaStar
+                                            key={index}
+                                            className={`w-6 h-6 ${index < Math.round(calculateAverageRating())
+                                                ? 'text-yellow-400'
+                                                : 'text-gray-300'
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
+                                <p className="text-gray-600">Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</p>
+                            </div>
+                        </div>
+
+                        {/* Rating Distribution */}
+                        <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                            {[5, 4, 3, 2, 1].map((star) => {
+                                const distribution = getRatingDistribution();
+                                const count = distribution[star];
+                                const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                                return (
+                                    <div key={star} className="flex items-center gap-3 mb-2">
+                                        <span className="text-sm font-semibold text-gray-700 w-8">{star}★</span>
+                                        <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                            <div
+                                                className="bg-yellow-400 h-3 rounded-full transition-all"
+                                                style={{ width: `${percentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-sm text-gray-600 w-8">{count}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Review Form */}
+                    {showReviewForm && (
+                        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-6 border-2 border-orange-200 mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-gray-900">
+                                    {editingReview ? 'Edit Your Review' : 'Write a Review'}
+                                </h3>
+                                <button
+                                    onClick={closeReviewForm}
+                                    className="text-gray-600 hover:text-gray-800 font-bold text-xl"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <form onSubmit={editingReview ? handleUpdateReview : handleAddReview}>
+                                {/* Star Rating Selector */}
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Your Rating
+                                    </label>
+                                    <div className="flex gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                                                className="focus:outline-none transition-transform hover:scale-110"
+                                            >
+                                                <FaStar
+                                                    className={`w-8 h-8 ${star <= reviewForm.rating
+                                                        ? 'text-yellow-400'
+                                                        : 'text-gray-300'
+                                                        }`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Review Text */}
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Your Review
+                                    </label>
+                                    <textarea
+                                        value={reviewForm.reviewText}
+                                        onChange={(e) => setReviewForm({ ...reviewForm, reviewText: e.target.value })}
+                                        rows="4"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none resize-none"
+                                        placeholder="Share your experience with this product..."
+                                    ></textarea>
+                                </div>
+
+                                {/* Submit Button */}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={closeReviewForm}
+                                        className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submittingReview}
+                                        className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {submittingReview ? 'Submitting...' : editingReview ? 'Update Review' : 'Submit Review'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* Reviews List */}
+                    {loadingReviews ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                        </div>
+                    ) : reviews.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                            <FaStar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No reviews yet</h3>
+                            <p className="text-gray-600 mb-6">Be the first to review this product!</p>
+                            <button
+                                onClick={() => setShowReviewForm(true)}
+                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
+                            >
+                                Write a Review
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {reviews.map((review) => {
+                                const isUserReview = userReview && userReview._id === review._id;
+                                return (
+                                    <div
+                                        key={review._id}
+                                        className={`p-6 rounded-2xl border-2 transition-all ${isUserReview
+                                            ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-yellow-50'
+                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h4 className="font-bold text-gray-900">
+                                                        {review.customerId?.name || 'Anonymous'}
+                                                    </h4>
+                                                    {isUserReview && (
+                                                        <span className="px-2 py-1 bg-orange-500 text-white text-xs font-semibold rounded">
+                                                            Your Review
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex gap-1">
+                                                        {[...Array(5)].map((_, index) => (
+                                                            <FaStar
+                                                                key={index}
+                                                                className={`w-4 h-4 ${index < review.rating
+                                                                    ? 'text-yellow-400'
+                                                                    : 'text-gray-300'
+                                                                    }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-sm text-gray-500">
+                                                        {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                                {review.reviewText && (
+                                                    <p className="text-gray-700 leading-relaxed">{review.reviewText}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Edit/Delete Buttons for User's Own Review */}
+                                            {isUserReview && (
+                                                <div className="flex gap-2 ml-4">
+                                                    <button
+                                                        onClick={() => openEditReview(review)}
+                                                        className="px-4 py-2 bg-orange-100 text-orange-600 font-semibold rounded-lg hover:bg-orange-200 transition-all text-sm"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteReview(review._id)}
+                                                        className="px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-all text-sm"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
                 {/* Similar Products Section */}
                 <div className="mt-12 pt-8 border-t border-gray-200">
                     <div className="flex items-center justify-between mb-6">
@@ -322,7 +770,7 @@ const Productview = () => {
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

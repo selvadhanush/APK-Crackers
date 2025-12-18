@@ -10,7 +10,8 @@ import {
     MdSettings,
     MdLogout,
     MdPerson,
-    MdNotifications
+    MdNotifications,
+    MdAttachMoney
 } from 'react-icons/md';
 
 const Adminsidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
@@ -60,7 +61,12 @@ const Adminsidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
     };
 
     const handleLogout = (isAutoLogout = false) => {
-        // Clear all auth data
+        // Clear all auth data from both sessionStorage and localStorage
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('userRole');
+        sessionStorage.removeItem('loginTime');
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
@@ -90,6 +96,7 @@ const Adminsidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
             icon: MdShoppingCart,
             badge: pendingOrders > 0 ? pendingOrders : null
         },
+        { name: 'Payouts', icon: MdAttachMoney },
     ];
 
     const bottomMenuItems = [

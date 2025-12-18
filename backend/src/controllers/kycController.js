@@ -5,8 +5,8 @@ import { createNotification } from "./notificationController.js";
 export const uploadKYC = async (req, res) => {
   try {
     console.log("📦 req.files:", req.files);
-console.log("📦 req.body:", req.body);
-console.log("📦 content-type:", req.headers["content-type"]);
+    console.log("📦 req.body:", req.body);
+    console.log("📦 content-type:", req.headers["content-type"]);
 
     const sellerId = req.user._id;
     const files = req.files;
@@ -113,6 +113,35 @@ console.log("📦 content-type:", req.headers["content-type"]);
     return res.status(500).json({
       message: "KYC upload failed",
       error: err.message,
+    });
+  }
+};
+
+// Get KYC Status
+export const getKYCStatus = async (req, res) => {
+  try {
+    const sellerId = req.user._id;
+
+    // Find KYC data for this seller
+    const kyc = await KYC.findOne({ sellerId });
+
+    if (!kyc) {
+      return res.json({
+        message: "No KYC data found",
+        kyc: null
+      });
+    }
+
+    return res.json({
+      message: "KYC data retrieved successfully",
+      kyc
+    });
+
+  } catch (err) {
+    console.error("Error fetching KYC status:", err);
+    return res.status(500).json({
+      message: "Failed to fetch KYC status",
+      error: err.message
     });
   }
 };

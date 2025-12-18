@@ -28,30 +28,32 @@ const Myproducts = ({ onNavigate }) => {
 
     const fetchProducts = async () => {
         try {
+            console.log('🔍 Fetching seller products...');
             const response = await API.get('/products/my-products');
-            setProducts(response.data);
+            console.log('✅ Products response:', response.data);
+
+            // Backend returns { count, products }, so extract the products array
+            const productsData = response.data.products || response.data;
+            setProducts(Array.isArray(productsData) ? productsData : []);
             setLoading(false);
         } catch (err) {
-            console.error('Error fetching products:', err);
-            setError('Failed to load products');
+            console.error('❌ Error fetching products:', err);
+            console.error('Error response:', err.response?.data);
+            console.error('Error status:', err.response?.status);
+            setError(err.response?.data?.message || 'Failed to load products');
+            setProducts([]); // Set empty array on error
             setLoading(false);
         }
     };
 
-    const handleDeleteProduct = async (productId) => {
-        if (!window.confirm('Are you sure you want to delete this product?')) {
-            return;
-        }
+    const handleEditProduct = (productId) => {
+        // TODO: Implement edit functionality when backend route is available
+        alert('Edit functionality is not yet available. Please contact admin to modify products.');
+    };
 
-        try {
-            // TODO: Implement delete endpoint
-            // await API.delete(`/products/${productId}`);
-            // setProducts(products.filter(p => p._id !== productId));
-            alert('Delete functionality will be implemented soon');
-        } catch (err) {
-            console.error('Error deleting product:', err);
-            alert('Failed to delete product');
-        }
+    const handleDeleteProduct = async (productId) => {
+        // TODO: Implement delete functionality when backend route is available
+        alert('Delete functionality is not yet available. Please contact admin to remove products.');
     };
 
     const getStatusBadge = (status) => {
@@ -69,11 +71,12 @@ const Myproducts = ({ onNavigate }) => {
         );
     };
 
-    const filteredProducts = products.filter(product => {
+    // Safety check: ensure products is always an array
+    const filteredProducts = Array.isArray(products) ? products.filter(product => {
         const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
         return matchesSearch && matchesCategory;
-    });
+    }) : [];
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -184,6 +187,7 @@ const Myproducts = ({ onNavigate }) => {
                                 {/* Edit/Delete Overlay */}
                                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
+                                        onClick={() => handleEditProduct(product._id)}
                                         className="p-2 bg-white rounded-lg shadow-md hover:bg-orange-500 hover:text-white transition-colors"
                                         title="Edit Product"
                                     >

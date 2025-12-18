@@ -13,11 +13,12 @@ const SellerProfile = () => {
     });
 
     useEffect(() => {
-        // Load seller data from localStorage
-        const user = localStorage.getItem('user');
+        // Load seller data from sessionStorage (priority) or localStorage
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
         if (user) {
             try {
                 const userData = JSON.parse(user);
+                console.log('Loaded seller data:', userData); // Debug log
                 setSellerData({
                     name: userData.name || '',
                     email: userData.email || '',
@@ -30,6 +31,8 @@ const SellerProfile = () => {
             } catch (error) {
                 console.error('Error parsing user data:', error);
             }
+        } else {
+            console.warn('No seller data found in storage');
         }
     }, []);
 

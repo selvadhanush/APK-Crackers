@@ -8,7 +8,8 @@ import {
     MdVerifiedUser,
     MdSettings,
     MdLogout,
-    MdPerson
+    MdPerson,
+    MdAttachMoney
 } from 'react-icons/md';
 
 const Sellersidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
@@ -16,8 +17,8 @@ const Sellersidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
     const [sellerInfo, setSellerInfo] = useState({ name: '', email: '' });
 
     useEffect(() => {
-        // Get seller info from localStorage
-        const user = localStorage.getItem('user');
+        // Get seller info from sessionStorage (priority) or localStorage
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
         if (user) {
             try {
                 const userData = JSON.parse(user);
@@ -40,8 +41,8 @@ const Sellersidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
     }, []);
 
     const checkLoginExpiry = () => {
-        const loginTime = localStorage.getItem('loginTime');
-        const userRole = localStorage.getItem('userRole');
+        const loginTime = sessionStorage.getItem('loginTime') || localStorage.getItem('loginTime');
+        const userRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
 
         if (loginTime && userRole === 'seller') {
             const currentTime = new Date().getTime();
@@ -56,7 +57,12 @@ const Sellersidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
     };
 
     const handleLogout = (isAutoLogout = false) => {
-        // Clear all auth data
+        // Clear all auth data from both sessionStorage and localStorage
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('userRole');
+        sessionStorage.removeItem('loginTime');
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
@@ -74,6 +80,7 @@ const Sellersidebar = ({ onNavigate, activePage = 'Dashboard' }) => {
     const menuItems = [
         { name: 'Dashboard', icon: MdDashboard },
         { name: 'Orders', icon: MdShoppingCart },
+        { name: 'Payouts', icon: MdAttachMoney },
         { name: 'Add Products', icon: MdAddBox },
         { name: 'My Products', icon: MdInventory },
         { name: 'KYC Verification', icon: MdVerifiedUser },

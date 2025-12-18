@@ -12,7 +12,8 @@ import {
     FaChevronDown,
     FaChevronUp,
     FaCog,
-    FaStore
+    FaStore,
+    FaHeart
 } from 'react-icons/fa';
 
 const Sidebar = () => {
@@ -163,6 +164,18 @@ const Sidebar = () => {
                         </div>
                     </div>
 
+                    {/* Wishlist Button */}
+                    <div className="relative group">
+                        <button
+                            onClick={() => navigate('/Wishlist')}
+                            className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center hover:bg-orange-600 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
+                            <FaHeart className="w-5 h-5 text-white" />
+                        </button>
+                        <div className="absolute left-20 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                            Wishlist
+                        </div>
+                    </div>
+
                     {/* Filter Button */}
                     <div className="relative group">
                         <button
@@ -194,8 +207,8 @@ const Sidebar = () => {
                         <button
                             onClick={handleBusinessAccountClick}
                             className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer ${isSellerLoggedIn
-                                    ? 'bg-green-500 hover:bg-green-600'
-                                    : 'bg-orange-500 hover:bg-orange-600'
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'bg-orange-500 hover:bg-orange-600'
                                 }`}
                         >
                             <FaStore className="w-5 h-5 text-white" />

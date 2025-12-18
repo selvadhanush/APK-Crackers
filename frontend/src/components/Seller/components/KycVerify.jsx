@@ -28,23 +28,64 @@ const KycVerify = () => {
 
     const [previews, setPreviews] = useState({});
     const [loading, setLoading] = useState(false);
+    const [fetchingKyc, setFetchingKyc] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [kycStatus, setKycStatus] = useState('not_submitted');
+    const [existingKycData, setExistingKycData] = useState(null);
 
     useEffect(() => {
         loadKycStatus();
     }, []);
 
-    const loadKycStatus = () => {
-        const user = localStorage.getItem('user');
-        if (user) {
-            try {
-                const userData = JSON.parse(user);
-                setKycStatus(userData.kycStatus || 'not_submitted');
-            } catch (error) {
-                console.error('Error parsing user data:', error);
+    const loadKycStatus = async () => {
+        try {
+            setFetchingKyc(true);
+
+            // Try to fetch existing KYC data from backend
+            const response = await API.get('/seller/kyc/status');
+
+            if (response.data.kyc) {
+                const kycData = response.data.kyc;
+                setKycStatus(kycData.status || 'not_submitted');
+                setExistingKycData(kycData);
+
+                // Update user data in storage
+                const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+                if (user) {
+                    const userData = JSON.parse(user);
+                    userData.kycStatus = kycData.status;
+
+                    // Update both storages
+                    if (sessionStorage.getItem('user')) {
+                        sessionStorage.setItem('user', JSON.stringify(userData));
+                    }
+                    if (localStorage.getItem('user')) {
+                        localStorage.setItem('user', JSON.stringify(userData));
+                    }
+                }
+            } else {
+                // No KYC data found, check local storage
+                const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+                if (user) {
+                    const userData = JSON.parse(user);
+                    setKycStatus(userData.kycStatus || 'not_submitted');
+                }
             }
+        } catch (error) {
+            console.error('Error fetching KYC status:', error);
+            // Fallback to localStorage/sessionStorage
+            const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    setKycStatus(userData.kycStatus || 'not_submitted');
+                } catch (parseError) {
+                    console.error('Error parsing user data:', parseError);
+                }
+            }
+        } finally {
+            setFetchingKyc(false);
         }
     };
 
@@ -195,10 +236,19 @@ const KycVerify = () => {
             setSuccess('KYC documents submitted successfully! Your application is under review.');
             setKycStatus('pending_review');
 
-            // Update localStorage
-            const user = JSON.parse(localStorage.getItem('user'));
-            user.kycStatus = 'pending_review';
-            localStorage.setItem('user', JSON.stringify(user));
+            // Update both localStorage and sessionStorage
+            const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+            if (user) {
+                const userData = JSON.parse(user);
+                userData.kycStatus = 'pending_review';
+
+                if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                }
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(userData));
+                }
+            }
 
         } catch (err) {
             console.error('KYC submission error:', err);
@@ -251,6 +301,18 @@ const KycVerify = () => {
 
     const statusInfo = getStatusInfo();
     const StatusIcon = statusInfo.icon;
+
+    // Show loading state while fetching KYC data
+    if (fetchingKyc) {
+        return (
+            <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-medium">Loading KYC status...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -383,8 +445,8 @@ const KycVerify = () => {
                             type="submit"
                             disabled={loading || kycStatus === 'pending_review' || kycStatus === 'approved'}
                             className={`px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2 ${loading || kycStatus === 'pending_review' || kycStatus === 'approved'
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30'
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30'
                                 }`}
                         >
                             {loading ? (

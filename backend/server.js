@@ -82,6 +82,8 @@ import adminSellerRoutes from "./src/routes/adminSellerRoutes.js";
 import searchRoutes from "./src/routes/searchRoutes.js";
 
 import notificationRoutes from "./src/routes/notificationRoutes.js";
+import payoutRoutes from "./src/routes/payoutRoutes.js";
+import sellerProfileRoutes from "./src/routes/sellerProfileRoutes.js";
 
 
 // =========================
@@ -93,6 +95,7 @@ app.use("/api/admin/kyc", adminKycRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/analytics", adminAnalyticsRoutes);
 app.use("/api/admin/sellers", adminSellerRoutes);
+app.use("/api/admin/payouts", payoutRoutes);
 
 
 // =========================
@@ -102,6 +105,8 @@ app.use("/api/seller/auth", sellerAuthRoutes);
 app.use("/api/seller/kyc", kycRoutes);
 app.use("/api/seller/orders", sellerOrderRoutes);
 app.use("/api/seller/analytics", sellerAnalyticsRoutes);
+app.use("/api/seller/payouts", payoutRoutes);
+app.use("/api/seller", sellerProfileRoutes);
 
 
 // =========================

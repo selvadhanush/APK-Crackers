@@ -1,6 +1,5 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
-import { adminOnly } from "../middleware/adminOnly.js";
 
 import {
   getSellerPayouts,

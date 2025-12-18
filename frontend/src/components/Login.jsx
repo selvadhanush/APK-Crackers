@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FaEye, FaEyeSlash, FaGoogle, FaFacebook } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import API from '../../api';
 
 const Login = () => {
@@ -15,6 +16,21 @@ const Login = () => {
         e.preventDefault();
         setError('');
         setSuccess('');
+
+        // Check if user is already logged in as another role
+        const existingRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+        if (existingRole && existingRole !== 'customer') {
+            const roleNames = {
+                'seller': 'Seller',
+                'admin': 'Admin'
+            };
+            toast.error(`You are already logged in as ${roleNames[existingRole]}. Please logout and try again.`, {
+                position: "top-center",
+                autoClose: 4000,
+            });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -27,8 +43,10 @@ const Login = () => {
                 // Store token in localStorage
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.user));
+                localStorage.setItem('userRole', 'customer');
 
                 setSuccess('Login successful! Redirecting...');
+                toast.success('Login successful!');
 
                 // Redirect to home after 1.5 seconds
                 setTimeout(() => {
@@ -37,7 +55,9 @@ const Login = () => {
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+            const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -257,8 +277,8 @@ const Login = () => {
                                     type="submit"
                                     disabled={loading}
                                     className={`w-full py-3 text-white font-semibold rounded-xl transition-all shadow-lg ${loading
-                                            ? 'bg-gradient-to-r from-orange-400 to-yellow-400 cursor-not-allowed'
-                                            : 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer'
+                                        ? 'bg-gradient-to-r from-orange-400 to-yellow-400 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer'
                                         }`}
                                 >
                                     {loading ? 'Signing In...' : 'Sign In'}

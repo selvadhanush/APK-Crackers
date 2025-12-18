@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaBell, FaLock, FaPalette, FaShoppingBag, FaMapMarkerAlt, FaCreditCard, FaGlobe, FaSave, FaEnvelope, FaPhone, FaKey, FaDownload, FaTrash, FaCheck } from 'react-icons/fa';
+import { FaUser, FaBell, FaLock, FaPalette, FaShoppingBag, FaMapMarkerAlt, FaCreditCard, FaGlobe, FaSave, FaEnvelope, FaPhone, FaKey, FaDownload, FaTrash, FaCheck, FaPlus, FaEdit, FaTimes } from 'react-icons/fa';
+import API from '../../api';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -23,6 +24,127 @@ const Settings = () => {
         theme: 'light'
     });
 
+    // Address Management State
+    const [addresses, setAddresses] = useState([]);
+    const [loadingAddresses, setLoadingAddresses] = useState(false);
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [editingAddress, setEditingAddress] = useState(null);
+    const [addressForm, setAddressForm] = useState({
+        fullname: '',
+        phone: '',
+        pincode: '',
+        state: '',
+        city: '',
+        addressLine: '',
+        landmark: ''
+    });
+
+    // Fetch addresses when addresses tab is active
+    useEffect(() => {
+        if (activeTab === 'addresses') {
+            fetchAddresses();
+        }
+    }, [activeTab]);
+
+    // Fetch all addresses
+    const fetchAddresses = async () => {
+        try {
+            setLoadingAddresses(true);
+            const response = await API.get('/address');
+            setAddresses(response.data || []);
+        } catch (error) {
+            console.error('Error fetching addresses:', error);
+            alert('Failed to load addresses');
+        } finally {
+            setLoadingAddresses(false);
+        }
+    };
+
+    // Add new address
+    const handleAddAddress = async (e) => {
+        e.preventDefault();
+        try {
+            await API.post('/address', addressForm);
+            alert('Address added successfully!');
+            setShowAddressForm(false);
+            resetAddressForm();
+            fetchAddresses();
+        } catch (error) {
+            console.error('Error adding address:', error);
+            alert(error.response?.data?.message || 'Failed to add address');
+        }
+    };
+
+    // Update address
+    const handleUpdateAddress = async (e) => {
+        e.preventDefault();
+        try {
+            await API.put(`/address/${editingAddress}`, addressForm);
+            alert('Address updated successfully!');
+            setEditingAddress(null);
+            setShowAddressForm(false);
+            resetAddressForm();
+            fetchAddresses();
+        } catch (error) {
+            console.error('Error updating address:', error);
+            alert(error.response?.data?.message || 'Failed to update address');
+        }
+    };
+
+    // Delete address
+    const handleDeleteAddress = async (addressId) => {
+        if (!confirm('Are you sure you want to delete this address?')) return;
+        try {
+            await API.delete(`/address/${addressId}`);
+            alert('Address deleted successfully!');
+            fetchAddresses();
+        } catch (error) {
+            console.error('Error deleting address:', error);
+            alert(error.response?.data?.message || 'Failed to delete address');
+        }
+    };
+
+    // Set default address
+    const handleSetDefaultAddress = async (addressId) => {
+        try {
+            await API.put(`/address/default/${addressId}`);
+            alert('Default address updated!');
+            fetchAddresses();
+        } catch (error) {
+            console.error('Error setting default address:', error);
+            alert(error.response?.data?.message || 'Failed to set default address');
+        }
+    };
+
+    // Edit address
+    const handleEditAddress = (address) => {
+        setEditingAddress(address._id);
+        setAddressForm({
+            fullname: address.fullname,
+            phone: address.phone,
+            pincode: address.pincode,
+            state: address.state,
+            city: address.city,
+            addressLine: address.addressLine,
+            landmark: address.landmark || ''
+        });
+        setShowAddressForm(true);
+    };
+
+    // Reset form
+    const resetAddressForm = () => {
+        setAddressForm({
+            fullname: '',
+            phone: '',
+            pincode: '',
+            state: '',
+            city: '',
+            addressLine: '',
+            landmark: ''
+        });
+        setEditingAddress(null);
+    };
+
     const handleChange = (field, value) => {
         setSettings(prev => ({ ...prev, [field]: value }));
     };
@@ -33,6 +155,7 @@ const Settings = () => {
 
     const tabs = [
         { id: 'account', label: 'Account', icon: FaUser, description: 'Personal information' },
+        { id: 'addresses', label: 'Addresses', icon: FaMapMarkerAlt, description: 'Manage delivery addresses' },
         { id: 'notifications', label: 'Notifications', icon: FaBell, description: 'Manage alerts' },
         { id: 'privacy', label: 'Privacy', icon: FaLock, description: 'Security settings' },
         { id: 'preferences', label: 'Preferences', icon: FaPalette, description: 'Customize experience' }
@@ -175,6 +298,246 @@ const Settings = () => {
                                                 Change Password
                                             </button>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Address Management */}
+                                {activeTab === 'addresses' && (
+                                    <div className="space-y-8">
+                                        <div className="flex items-center justify-between pb-6 border-b border-gray-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                                                    <FaMapMarkerAlt className="w-6 h-6 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-2xl font-bold text-gray-900">Delivery Addresses</h2>
+                                                    <p className="text-sm text-gray-500">Manage your saved addresses</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    resetAddressForm();
+                                                    setShowAddressForm(true);
+                                                }}
+                                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/30 flex items-center gap-2"
+                                            >
+                                                <FaPlus className="w-4 h-4" />
+                                                Add New Address
+                                            </button>
+                                        </div>
+
+                                        {/* Address Form */}
+                                        {showAddressForm && (
+                                            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-6 border-2 border-orange-200">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h3 className="text-xl font-bold text-gray-900">
+                                                        {editingAddress ? 'Edit Address' : 'Add New Address'}
+                                                    </h3>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowAddressForm(false);
+                                                            resetAddressForm();
+                                                        }}
+                                                        className="p-2 hover:bg-white rounded-lg transition-all"
+                                                    >
+                                                        <FaTimes className="w-5 h-5 text-gray-600" />
+                                                    </button>
+                                                </div>
+
+                                                <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="space-y-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className={labelClasses}>Full Name</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.fullname}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, fullname: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="Enter full name"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className={labelClasses}>Phone Number</label>
+                                                            <input
+                                                                type="tel"
+                                                                value={addressForm.phone}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="+91 98765 43210"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div className="md:col-span-2">
+                                                            <label className={labelClasses}>Address Line</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.addressLine}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, addressLine: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="House No., Building Name, Street"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className={labelClasses}>Landmark (Optional)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.landmark}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="Near..."
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className={labelClasses}>City</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.city}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="City"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className={labelClasses}>State</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.state}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="State"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className={labelClasses}>PIN Code</label>
+                                                            <input
+                                                                type="text"
+                                                                value={addressForm.pincode}
+                                                                onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+                                                                className={inputClasses}
+                                                                placeholder="600001"
+                                                                pattern="[0-9]{6}"
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-3 pt-4">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setShowAddressForm(false);
+                                                                resetAddressForm();
+                                                            }}
+                                                            className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            type="submit"
+                                                            className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/30"
+                                                        >
+                                                            <FaSave className="inline mr-2" />
+                                                            {editingAddress ? 'Update Address' : 'Save Address'}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        {/* Address List */}
+                                        {loadingAddresses ? (
+                                            <div className="flex items-center justify-center py-12">
+                                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                                            </div>
+                                        ) : addresses.length === 0 ? (
+                                            <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                                <FaMapMarkerAlt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-2">No addresses saved</h3>
+                                                <p className="text-gray-600 mb-6">Add your first delivery address to get started</p>
+                                                <button
+                                                    onClick={() => {
+                                                        resetAddressForm();
+                                                        setShowAddressForm(true);
+                                                    }}
+                                                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/30"
+                                                >
+                                                    <FaPlus className="inline mr-2" />
+                                                    Add Address
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {addresses.map((address) => (
+                                                    <div
+                                                        key={address._id}
+                                                        className={`p-6 rounded-2xl border-2 transition-all ${address.isDefault
+                                                                ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg shadow-orange-500/20'
+                                                                : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${address.isDefault ? 'bg-orange-500' : 'bg-gray-100'
+                                                                    }`}>
+                                                                    <FaMapMarkerAlt className={`w-5 h-5 ${address.isDefault ? 'text-white' : 'text-gray-600'
+                                                                        }`} />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-bold text-gray-900">{address.fullname}</h4>
+                                                                    {address.isDefault && (
+                                                                        <span className="inline-block px-2 py-1 bg-orange-500 text-white text-xs font-semibold rounded mt-1">
+                                                                            Default
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2 mb-4 text-sm text-gray-700">
+                                                            <p>{address.addressLine}</p>
+                                                            {address.landmark && <p className="text-gray-600">Landmark: {address.landmark}</p>}
+                                                            <p>{address.city}, {address.state} - {address.pincode}</p>
+                                                            <p className="font-semibold">Phone: {address.phone}</p>
+                                                        </div>
+
+                                                        <div className="flex gap-2 pt-4 border-t border-gray-200">
+                                                            {!address.isDefault && (
+                                                                <button
+                                                                    onClick={() => handleSetDefaultAddress(address._id)}
+                                                                    className="flex-1 px-4 py-2 bg-orange-100 text-orange-600 font-semibold rounded-lg hover:bg-orange-200 transition-all text-sm"
+                                                                >
+                                                                    <FaCheck className="inline mr-1" />
+                                                                    Set Default
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleEditAddress(address)}
+                                                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-all text-sm"
+                                                            >
+                                                                <FaEdit className="inline mr-1" />
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteAddress(address._id)}
+                                                                className="px-4 py-2 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-all text-sm"
+                                                            >
+                                                                <FaTrash className="inline" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

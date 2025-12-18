@@ -1,9 +1,12 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import upload from "../middleware/upload.js";
-import { uploadKYC } from "../controllers/kycController.js";
+import { uploadKYC, getKYCStatus } from "../controllers/kycController.js";
 
 const router = express.Router();
+
+// Get KYC status
+router.get("/status", authenticate, getKYCStatus);
 
 // ❌ NO sellerGuard here
 router.post(

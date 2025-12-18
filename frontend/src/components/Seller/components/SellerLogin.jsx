@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff, MdStore } from 'react-icons/md';
 import { FaInfinity } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import API from '../../../../api';
 
 const SellerLogin = () => {
@@ -26,6 +27,21 @@ const SellerLogin = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Check if user is already logged in as another role
+        const existingRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+        if (existingRole && existingRole !== 'seller') {
+            const roleNames = {
+                'customer': 'Customer',
+                'admin': 'Admin'
+            };
+            toast.error(`You are already logged in as ${roleNames[existingRole]}. Please logout and try again.`, {
+                position: "top-center",
+                autoClose: 4000,
+            });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -35,27 +51,33 @@ const SellerLogin = () => {
             });
 
             if (response.data.token) {
-                // Store token and user data in localStorage
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.seller));
-                localStorage.setItem('userRole', 'seller');
+                // Use sessionStorage instead of localStorage
+                // This will automatically clear when the browser tab/window is closed
+                sessionStorage.setItem('token', response.data.token);
+                sessionStorage.setItem('user', JSON.stringify(response.data.seller));
+                sessionStorage.setItem('userRole', 'seller');
 
                 // Store login timestamp for 24-hour auto-logout
                 const loginTime = new Date().getTime();
-                localStorage.setItem('loginTime', loginTime.toString());
+                sessionStorage.setItem('loginTime', loginTime.toString());
+
+                toast.success('Login successful!');
 
                 // Navigate to seller dashboard
                 navigate('/seller-home');
             }
         } catch (err) {
             console.error('Login error:', err);
+            let errorMessage = '';
             if (err.response?.status === 404) {
-                setError('Seller account not found. Please check your email.');
+                errorMessage = 'Seller account not found. Please check your email.';
             } else if (err.response?.status === 400) {
-                setError('Invalid password. Please try again.');
+                errorMessage = 'Invalid password. Please try again.';
             } else {
-                setError(err.response?.data?.message || 'Login failed. Please try again.');
+                errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
             }
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -158,8 +180,8 @@ const SellerLogin = () => {
                             type="submit"
                             disabled={loading}
                             className={`w-full py-3 text-white font-bold rounded-xl transition-all shadow-lg ${loading
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40'
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40'
                                 }`}
                         >
                             {loading ? 'Signing In...' : 'Sign In'}

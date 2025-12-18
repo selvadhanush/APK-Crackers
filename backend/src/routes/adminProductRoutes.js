@@ -6,10 +6,14 @@ import {
   getPendingProducts,
   approveProduct,
   rejectProduct,
-  getAllProductsCount
+  getAllProductsCount,
+  getAllProducts
 } from "../controllers/adminProductController.js";
 
 const router = express.Router();
+
+// Get all products (with optional status filter)
+router.get("/all", authenticate, isAdmin, getAllProducts);
 
 // Get all pending products
 router.get("/pending", authenticate, isAdmin, getPendingProducts);

@@ -1,50 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdEmail, MdPhone, MdLocationOn, MdCreditCard, MdPrint, MdLocalShipping } from 'react-icons/md';
 import { FaCheckCircle, FaClock } from 'react-icons/fa';
+import API from '../../../../api';
 
-const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
-    const orderData = {
-        id: '#FC-2023001',
-        status: 'Shipped',
-        orderDate: '2023-10-26 14:30',
-        orderTotal: '$125.99',
-        paymentMethod: 'Credit Card (****1234)',
-        buyer: {
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '(555) 123-4567',
-            address: '123 Main St, Anytown, CA 90210, USA'
-        },
-        items: [
-            {
-                name: 'Sparkler Pack (10x)',
-                qty: 2,
-                price: '$15.00',
-                image: '✨'
-            },
-            {
-                name: 'Assorted Firecracker Box',
-                qty: 1,
-                price: '$85.99',
-                image: '🎆'
-            }
-        ],
-        pricing: {
-            subtotal: '$115.99',
-            shipping: '$10.00',
-            tax: '$0.00',
-            total: '$125.99'
-        },
-        shipping: {
-            carrier: 'UPS',
-            trackingNumber: '1Z9999999999999999'
-        },
-        timeline: [
-            { status: 'Order Placed', date: '2023-10-26 14:30', completed: true, color: 'orange' },
-            { status: 'Payment Confirmed', date: '2023-10-26 14:35', completed: true, color: 'orange' },
-            { status: 'Order Shipped', date: '2023-10-27 09:00', completed: true, color: 'blue' },
-            { status: 'Delivered', date: '', completed: false, color: 'gray' }
-        ]
+const SellerOrderview = ({ orderId }) => {
+    const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (orderId) {
+            fetchOrderDetails();
+        } else {
+            console.error('❌ No orderId provided to SellerOrderview');
+            setError('No order ID provided');
+            setLoading(false);
+        }
+    }, [orderId]);
+
+    const fetchOrderDetails = async () => {
+        try {
+            console.log('🔍 Fetching order details for orderId:', orderId);
+            setLoading(true);
+            const response = await API.get(`/seller/orders/${orderId}`);
+            console.log('✅ Order data received:', response.data);
+            setOrder(response.data);
+            setError('');
+        } catch (error) {
+            console.error('❌ Error fetching order:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            setError(error.response?.data?.message || 'Failed to load order details');
+        } finally {
+            console.log('🏁 Setting loading to false');
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+            </div>
+        );
+    }
+
+    if (error || !order) {
+        return (
+            <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600 mb-4">{error || 'Order not found'}</p>
+                    <button
+                        onClick={() => window.history.back()}
+                        className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleString();
     };
 
     return (
@@ -52,11 +71,14 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Orders › {orderData.id}</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Orders › {order._id}</h1>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold text-sm">
-                        {orderData.status}
+                    <span className={`px-4 py-2 ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                        order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                            'bg-orange-100 text-orange-700'
+                        } rounded-lg font-semibold text-sm`}>
+                        {order.status}
                     </span>
                 </div>
             </div>
@@ -71,21 +93,21 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <p className="text-gray-500 mb-1">Order ID:</p>
-                                <p className="font-semibold text-gray-900">{orderData.id}</p>
+                                <p className="font-semibold text-gray-900 text-xs md:text-sm">{order._id}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Order Date:</p>
-                                <p className="font-semibold text-gray-900">{orderData.orderDate}</p>
+                                <p className="font-semibold text-gray-900">{formatDate(order.createdAt)}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Order Total:</p>
-                                <p className="font-semibold text-gray-900">{orderData.orderTotal}</p>
+                                <p className="font-semibold text-gray-900">₹{order.totalAmount?.toFixed(2)}</p>
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Payment Method:</p>
                                 <div className="flex items-center gap-2">
                                     <MdCreditCard className="text-gray-600" />
-                                    <p className="font-semibold text-gray-900 text-xs">{orderData.paymentMethod}</p>
+                                    <p className="font-semibold text-gray-900 text-xs">{order.paymentMethod || 'Online Payment'}</p>
                                 </div>
                             </div>
                         </div>
@@ -98,28 +120,28 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
                         <div className="space-y-3 text-sm">
                             <div>
                                 <p className="text-gray-500 mb-1">Name:</p>
-                                <p className="font-semibold text-gray-900">{orderData.buyer.name}</p>
+                                <p className="font-semibold text-gray-900">{order.customerId?.name || 'Guest'}</p>
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 text-gray-500 mb-1">
                                     <MdEmail className="w-4 h-4" />
                                     <p>Email:</p>
                                 </div>
-                                <p className="font-semibold text-orange-600">{orderData.buyer.email}</p>
+                                <p className="font-semibold text-orange-600">{order.customerId?.email || 'N/A'}</p>
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 text-gray-500 mb-1">
                                     <MdPhone className="w-4 h-4" />
                                     <p>Phone:</p>
                                 </div>
-                                <p className="font-semibold text-gray-900">{orderData.buyer.phone}</p>
+                                <p className="font-semibold text-gray-900">{order.customerId?.phone || 'N/A'}</p>
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 text-gray-500 mb-1">
                                     <MdLocationOn className="w-4 h-4" />
                                     <p>Address:</p>
                                 </div>
-                                <p className="font-semibold text-gray-900">{orderData.buyer.address}</p>
+                                <p className="font-semibold text-gray-900">{order.shippingAddress || 'No address provided'}</p>
                             </div>
                         </div>
                     </div>
@@ -129,18 +151,22 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
                         <h2 className="text-lg font-bold text-gray-900 mb-4">Items List</h2>
 
                         <div className="space-y-4">
-                            {orderData.items.map((item, index) => (
+                            {order.items?.map((item, index) => (
                                 <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
-                                            {item.image}
+                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl overflow-hidden">
+                                            {item.productId?.images?.[0] ? (
+                                                <img src={item.productId.images[0]} alt={item.productId.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                '✨'
+                                            )}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-gray-900">{item.name}</p>
-                                            <p className="text-sm text-gray-500">Qty: {item.qty}</p>
+                                            <p className="font-semibold text-gray-900">{item.productId?.name || 'Product Name'}</p>
+                                            <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                                         </div>
                                     </div>
-                                    <p className="font-bold text-gray-900">{item.price}</p>
+                                    <p className="font-bold text-gray-900">₹{(item.price || 0).toFixed(2)}</p>
                                 </div>
                             ))}
                         </div>
@@ -149,85 +175,30 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
                         <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Subtotal:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.subtotal}</span>
+                                <span className="font-semibold text-gray-900">₹{order.totalAmount?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Shipping:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.shipping}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Tax:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.tax}</span>
+                                <span className="font-semibold text-gray-900">₹0.00</span>
                             </div>
                             <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
                                 <span className="text-gray-900">Total:</span>
-                                <span className="text-gray-900">{orderData.pricing.total}</span>
+                                <span className="text-gray-900">₹{order.totalAmount?.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Shipping & Tracking */}
+                    {/* Timeline (Simplified for now based strictly on status) */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4">Shipping & Tracking</h2>
-
-                        <div className="space-y-3 text-sm mb-4">
-                            <div>
-                                <p className="text-gray-500 mb-1">Carrier:</p>
-                                <p className="font-semibold text-gray-900">{orderData.shipping.carrier}</p>
+                        <h2 className="text-lg font-bold text-gray-900 mb-6">Order Status</h2>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                                <FaClock />
                             </div>
                             <div>
-                                <p className="text-gray-500 mb-1">Tracking Number:</p>
-                                <p className="font-semibold text-gray-900">{orderData.shipping.trackingNumber}</p>
+                                <p className="font-semibold text-gray-900">Current Status: {order.status}</p>
+                                <p className="text-sm text-gray-500">Last updated: {formatDate(order.updatedAt)}</p>
                             </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button className="flex-1 px-4 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-2">
-                                <MdLocalShipping className="w-5 h-5" />
-                                Update Tracking
-                            </button>
-                            <button className="px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-all">
-                                Track Package
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Order Timeline */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-6">Order Timeline</h2>
-
-                        <div className="space-y-4">
-                            {orderData.timeline.map((event, index) => (
-                                <div key={index} className="flex items-start gap-4">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${event.completed
-                                            ? event.color === 'orange'
-                                                ? 'bg-orange-100'
-                                                : event.color === 'blue'
-                                                    ? 'bg-blue-100'
-                                                    : 'bg-gray-100'
-                                            : 'bg-gray-100'
-                                        }`}>
-                                        {event.completed ? (
-                                            <FaCheckCircle className={`w-5 h-5 ${event.color === 'orange'
-                                                    ? 'text-orange-600'
-                                                    : event.color === 'blue'
-                                                        ? 'text-blue-600'
-                                                        : 'text-gray-400'
-                                                }`} />
-                                        ) : (
-                                            <FaClock className="w-5 h-5 text-gray-400" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className={`font-semibold ${event.completed ? 'text-gray-900' : 'text-gray-400'}`}>
-                                            {event.status}
-                                        </p>
-                                        {event.date && (
-                                            <p className="text-sm text-gray-500">{event.date}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>
@@ -244,32 +215,8 @@ const SellerOrderview = ({ orderId = '#FC-2023001' }) => {
                             </button>
                             <button className="w-full px-4 py-3 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
                                 <MdLocalShipping className="w-5 h-5" />
-                                Refund
+                                Update Status
                             </button>
-                        </div>
-                    </div>
-
-                    {/* Order Totals - Sticky */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4">Order Totals</h2>
-
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Subtotal:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.subtotal}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Shipping:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.shipping}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Tax:</span>
-                                <span className="font-semibold text-gray-900">{orderData.pricing.tax}</span>
-                            </div>
-                            <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-200">
-                                <span className="text-gray-900">Total:</span>
-                                <span className="text-gray-900">{orderData.pricing.total}</span>
-                            </div>
                         </div>
                     </div>
                 </div>

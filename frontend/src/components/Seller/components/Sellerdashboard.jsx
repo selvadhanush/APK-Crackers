@@ -26,7 +26,7 @@ const Sellerdashboard = () => {
     }, []);
 
     const loadSellerInfo = () => {
-        const user = localStorage.getItem('user');
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
         if (user) {
             try {
                 const userData = JSON.parse(user);

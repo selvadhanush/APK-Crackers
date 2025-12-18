@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdStore, MdNotifications, MdSecurity, MdPayment, MdSettings, MdEdit, MdSave, MdCancel } from 'react-icons/md';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaBell, FaLock, FaCreditCard } from 'react-icons/fa';
+import API from '../../../../api';
 
 const SellerSettings = () => {
     const [activeTab, setActiveTab] = useState('business');
     const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const [businessInfo, setBusinessInfo] = useState({
-        businessName: 'Firecracker Emporium',
-        ownerName: 'John Doe',
-        email: 'john@firecrackers.com',
-        phone: '+91 98765 43210',
-        gstNumber: '29ABCDE1234F1Z5',
-        address: '123 Main Street, Business District',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001'
+        businessName: '',
+        name: '',
+        email: '',
+        phone: '',
+        businessType: '',
+        businessAddress: ''
     });
 
     const [notifications, setNotifications] = useState({
@@ -28,12 +28,38 @@ const SellerSettings = () => {
     });
 
     const [paymentSettings, setPaymentSettings] = useState({
-        bankName: 'State Bank of India',
-        accountNumber: '1234567890',
-        ifscCode: 'SBIN0001234',
-        upiId: 'seller@paytm',
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: '',
         paymentMethod: 'bank'
     });
+
+    useEffect(() => {
+        fetchSellerProfile();
+    }, []);
+
+    const fetchSellerProfile = async () => {
+        try {
+            setLoading(true);
+            const response = await API.get('/seller/profile');
+            const seller = response.data;
+
+            setBusinessInfo({
+                businessName: seller.businessName || '',
+                name: seller.name || '',
+                email: seller.email || '',
+                phone: seller.phone || '',
+                businessType: seller.businessType || '',
+                businessAddress: seller.businessAddress || ''
+            });
+
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching seller profile:', error);
+            setLoading(false);
+        }
+    };
 
     const tabs = [
         { id: 'business', name: 'Business Info', icon: MdStore },
@@ -54,10 +80,19 @@ const SellerSettings = () => {
         }
     };
 
-    const handleSave = () => {
-        console.log('Saving settings...');
-        setIsEditing(false);
-        // Handle save logic
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            await API.put('/seller/profile', businessInfo);
+            alert('Profile updated successfully!');
+            setIsEditing(false);
+            fetchSellerProfile(); // Refresh data
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert(error.response?.data?.message || 'Failed to update profile');
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -80,8 +115,8 @@ const SellerSettings = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === tab.id
-                                                ? 'bg-orange-100 text-orange-600'
-                                                : 'text-gray-600 hover:bg-gray-50'
+                                            ? 'bg-orange-100 text-orange-600'
+                                            : 'text-gray-600 hover:bg-gray-50'
                                             }`}
                                     >
                                         <Icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-orange-600' : 'text-gray-500'}`} />
@@ -115,14 +150,28 @@ const SellerSettings = () => {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={handleSave}
-                                                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
+                                                disabled={saving}
+                                                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                <MdSave className="w-4 h-4" />
-                                                Save
+                                                {saving ? (
+                                                    <>
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <MdSave className="w-4 h-4" />
+                                                        Save
+                                                    </>
+                                                )}
                                             </button>
                                             <button
-                                                onClick={() => setIsEditing(false)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
+                                                onClick={() => {
+                                                    setIsEditing(false);
+                                                    fetchSellerProfile(); // Reset to original data
+                                                }}
+                                                disabled={saving}
+                                                className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all disabled:opacity-50"
                                             >
                                                 <MdCancel className="w-4 h-4" />
                                                 Cancel
@@ -131,132 +180,107 @@ const SellerSettings = () => {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <MdStore className="inline w-4 h-4 mr-1 mb-1" />
-                                            Business Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="businessName"
-                                            value={businessInfo.businessName}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
+                                {loading ? (
+                                    <div className="text-center py-12">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto"></div>
+                                        <p className="text-gray-500 mt-4">Loading profile...</p>
                                     </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                <MdStore className="inline w-4 h-4 mr-1 mb-1" />
+                                                Business Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="businessName"
+                                                value={businessInfo.businessName}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            />
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FaUser className="inline w-4 h-4 mr-1 mb-1" />
-                                            Owner Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="ownerName"
-                                            value={businessInfo.ownerName}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                <FaUser className="inline w-4 h-4 mr-1 mb-1" />
+                                                Owner Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={businessInfo.name}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            />
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FaEnvelope className="inline w-4 h-4 mr-1 mb-1" />
-                                            Email
-                                        </label>
-                                        <input
-                                            type="email"
-                                            name="email"
-                                            value={businessInfo.email}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                <FaEnvelope className="inline w-4 h-4 mr-1 mb-1" />
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={businessInfo.email}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            />
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FaPhone className="inline w-4 h-4 mr-1 mb-1" />
-                                            Phone
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            name="phone"
-                                            value={businessInfo.phone}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                <FaPhone className="inline w-4 h-4 mr-1 mb-1" />
+                                                Phone
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                name="phone"
+                                                value={businessInfo.phone}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            />
+                                        </div>
 
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            GST Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="gstNumber"
-                                            value={businessInfo.gstNumber}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Business Type
+                                            </label>
+                                            <select
+                                                name="businessType"
+                                                value={businessInfo.businessType}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            >
+                                                <option value="">Select Business Type</option>
+                                                <option value="manufacturer">Manufacturer</option>
+                                                <option value="wholesaler">Wholesaler</option>
+                                                <option value="retailer">Retailer</option>
+                                            </select>
+                                        </div>
 
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FaMapMarkerAlt className="inline w-4 h-4 mr-1 mb-1" />
-                                            Address
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="address"
-                                            value={businessInfo.address}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                <FaMapMarkerAlt className="inline w-4 h-4 mr-1 mb-1" />
+                                                Business Address
+                                            </label>
+                                            <textarea
+                                                name="businessAddress"
+                                                value={businessInfo.businessAddress}
+                                                onChange={(e) => handleInputChange(e, 'business')}
+                                                disabled={!isEditing}
+                                                rows="3"
+                                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                        <input
-                                            type="text"
-                                            name="city"
-                                            value={businessInfo.city}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                                        <input
-                                            type="text"
-                                            name="state"
-                                            value={businessInfo.state}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
-                                        <input
-                                            type="text"
-                                            name="pincode"
-                                            value={businessInfo.pincode}
-                                            onChange={(e) => handleInputChange(e, 'business')}
-                                            disabled={!isEditing}
-                                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:bg-gray-50"
-                                        />
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -308,8 +332,8 @@ const SellerSettings = () => {
                                         <button
                                             onClick={() => setPaymentSettings(prev => ({ ...prev, paymentMethod: 'bank' }))}
                                             className={`p-4 border-2 rounded-lg transition-all ${paymentSettings.paymentMethod === 'bank'
-                                                    ? 'border-orange-500 bg-orange-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <FaCreditCard className={`w-6 h-6 mx-auto mb-2 ${paymentSettings.paymentMethod === 'bank' ? 'text-orange-500' : 'text-gray-400'
@@ -319,8 +343,8 @@ const SellerSettings = () => {
                                         <button
                                             onClick={() => setPaymentSettings(prev => ({ ...prev, paymentMethod: 'upi' }))}
                                             className={`p-4 border-2 rounded-lg transition-all ${paymentSettings.paymentMethod === 'upi'
-                                                    ? 'border-orange-500 bg-orange-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <MdPayment className={`w-6 h-6 mx-auto mb-2 ${paymentSettings.paymentMethod === 'upi' ? 'text-orange-500' : 'text-gray-400'

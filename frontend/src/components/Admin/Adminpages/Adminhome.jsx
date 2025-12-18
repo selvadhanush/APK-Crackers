@@ -3,6 +3,8 @@ import Adminsidebar from '../components/Adminsidebar';
 import Adminkyc from '../components/Adminkyc';
 import Adminapproval from '../components/Adminapproval';
 import Adminorders from '../components/Adminorders';
+import AdminPayouts from '../components/AdminPayouts';
+import AdminAllProducts from '../components/AdminAllProducts';
 import API from '../../../../api';
 
 import {
@@ -278,6 +280,9 @@ const Adminhome = () => {
                     </div>
                 );
 
+            case 'All Products':
+                return <AdminAllProducts />;
+
             case 'Product Approval':
                 return (
                     <div className="p-6">
@@ -285,10 +290,19 @@ const Adminhome = () => {
                     </div>
                 );
 
+            case 'Rejected Products':
+                return <AdminAllProducts />;
+
             case 'Orders':
                 return (
                     <div className="p-6">
                         <Adminorders />
+                    </div>
+                );
+            case 'Payouts':
+                return (
+                    <div className="p-6">
+                        <AdminPayouts />
                     </div>
                 );
             case 'Settings':

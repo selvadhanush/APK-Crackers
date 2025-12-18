@@ -7,7 +7,7 @@ import { createNotification } from "../controllers/notificationController.js";  
 export const createOrder = async (req, res) => {
   try {
     const customerId = req.user._id;
-    const { shippingAddress } = req.body;
+    const { shippingAddress, paymentMethod = "online" } = req.body;
 
     // Fetch customer cart
     const cart = await Cart.findOne({ customerId }).populate("items.productId");
@@ -41,15 +41,16 @@ export const createOrder = async (req, res) => {
       await product.save();
     }
 
-    // Create order
+    // Create order with payment method
     const order = await Order.create({
       customerId,
       sellerId,
       items: orderItems,
       totalAmount,
       shippingAddress,
-      status: "pending_payment",
-      paymentStatus: "pending"
+      paymentMethod,
+      status: paymentMethod === "cod" ? "paid" : "pending_payment",
+      paymentStatus: paymentMethod === "cod" ? "pending" : "pending"
     });
 
     // ⭐ NOTIFICATION 1 — Notify Seller

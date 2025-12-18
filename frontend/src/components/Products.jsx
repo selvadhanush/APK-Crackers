@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaStar, FaChevronDown, FaShoppingCart, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaStar, FaChevronDown, FaShoppingCart, FaCheckCircle, FaExclamationCircle, FaHeart } from 'react-icons/fa';
 import API from '../../api';
 
 const Products = () => {
@@ -12,17 +12,45 @@ const Products = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [wishlistItems, setWishlistItems] = useState([]);
+    const [togglingWishlist, setTogglingWishlist] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [cartItems, setCartItems] = useState([]);
 
     useEffect(() => {
         fetchProducts();
-    }, []);
+        fetchWishlist();
+        fetchCart();
+    }, [selectedFilter, currentPage, searchQuery]);
 
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const response = await API.get('/products/customer');
-            const productsData = Array.isArray(response.data) ? response.data : [];
-            setProducts(productsData);
+            let response;
+
+            // Use search if query exists
+            if (searchQuery.trim()) {
+                response = await API.get(`/products/customer/search?q=${encodeURIComponent(searchQuery)}`);
+                const productsData = Array.isArray(response.data) ? response.data : [];
+                setProducts(productsData);
+                setTotalPages(1); // Search doesn't have pagination
+            }
+            // Use category filter if not "All"
+            else if (selectedFilter !== 'All') {
+                response = await API.get(`/products/customer/category/${selectedFilter.toLowerCase()}`);
+                const productsData = Array.isArray(response.data) ? response.data : [];
+                setProducts(productsData);
+                setTotalPages(1); // Category filter doesn't have pagination
+            }
+            // Use pagination for "All" products
+            else {
+                response = await API.get(`/products/customer/page?page=${currentPage}`);
+                setProducts(response.data.products || []);
+                setTotalPages(response.data.totalPages || 1);
+            }
+
             setError('');
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -33,11 +61,74 @@ const Products = () => {
         }
     };
 
-    const filterOptions = ['All', 'Night', 'Day'];
+    const fetchWishlist = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-    const filteredProducts = selectedFilter === 'All'
-        ? products
-        : products.filter(product => product.category === selectedFilter.toLowerCase());
+            const response = await API.get('/wishlist');
+            // Backend returns array directly, not wrapped in object
+            const wishlistProductIds = (Array.isArray(response.data) ? response.data : []).map(item => item.productId._id);
+            setWishlistItems(wishlistProductIds);
+        } catch (error) {
+            console.error('Error fetching wishlist:', error);
+        }
+    };
+
+    const fetchCart = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await API.get('/cart');
+            setCartItems(response.data.items || []);
+        } catch (error) {
+            console.error('Error fetching cart:', error);
+        }
+    };
+
+    const toggleWishlist = async (e, productId) => {
+        e.stopPropagation();
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showNotification('Please login to add items to wishlist', 'error');
+            setTimeout(() => navigate('/Login'), 1500);
+            return;
+        }
+
+        setTogglingWishlist(productId);
+
+        try {
+            const isInWishlist = wishlistItems.includes(productId);
+
+            if (isInWishlist) {
+                await API.delete(`/wishlist/remove/${productId}`);
+                setWishlistItems(prev => prev.filter(id => id !== productId));
+                showNotification('Removed from wishlist', 'success');
+            } else {
+                await API.post('/wishlist/add', { productId });
+                setWishlistItems(prev => [...prev, productId]);
+                showNotification('Added to wishlist!', 'success');
+            }
+        } catch (error) {
+            console.error('Wishlist error:', error);
+            if (error.response?.status === 401) {
+                showNotification('Session expired. Please login again', 'error');
+                setTimeout(() => navigate('/Login'), 1500);
+            } else if (error.response?.status === 400 && error.response?.data?.message === 'Already in wishlist') {
+                // Item already in wishlist, just update UI
+                setWishlistItems(prev => [...prev, productId]);
+                showNotification('Already in wishlist', 'success');
+            } else {
+                showNotification(error.response?.data?.message || 'Failed to update wishlist', 'error');
+            }
+        } finally {
+            setTogglingWishlist(null);
+        }
+    };
+
+    const filterOptions = ['All', 'Night', 'Day'];
 
     const handleProductClick = (productId) => {
         navigate(`/product/${productId}`);
@@ -70,6 +161,7 @@ const Products = () => {
             });
 
             showNotification('Added to cart successfully!', 'success');
+            fetchCart(); // Refresh cart to update UI
         } catch (error) {
             console.error('Add to cart error:', error);
             if (error.response?.status === 401) {
@@ -109,7 +201,7 @@ const Products = () => {
                     {/* Right - Action Buttons */}
                     <div className="flex items-center gap-3">
                         {/* Scan Barcode Button */}
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 rounded-full hover:border-gray-400 transition-all cursor-pointer">
+                        {/* <button className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 rounded-full hover:border-gray-400 transition-all cursor-pointer">
                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
                                 <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h.01M12 12h.01M12 17h.01M17 7h.01M17 12h.01M17 17h.01" strokeWidth="2" />
@@ -117,10 +209,10 @@ const Products = () => {
                             <span className="text-sm font-medium text-gray-700">Scan Barcode</span>
                         </button>
 
-                        {/* Slicedice Button */}
+                        
                         <button className="px-6 py-2 bg-orange-500 text-white rounded-full font-medium hover:bg-orange-600 transition-all cursor-pointer">
                             Slicedice
-                        </button>
+                        </button> */}
 
                         {/* Filter Dropdown */}
                         <div className="relative">
@@ -182,6 +274,20 @@ const Products = () => {
 
             {/* Products Grid */}
             <div className="p-6">
+                {/* Search Bar */}
+                <div className="mb-6">
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1); // Reset to page 1 when searching
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none"
+                    />
+                </div>
+
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -197,13 +303,13 @@ const Products = () => {
                             Retry
                         </button>
                     </div>
-                ) : filteredProducts.length === 0 ? (
+                ) : products.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20">
                         <p className="text-gray-600 text-lg">No products found</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredProducts.map((product) => (
+                        {products.map((product) => (
                             <div
                                 key={product._id}
                                 onClick={() => handleProductClick(product._id)}
@@ -216,6 +322,23 @@ const Products = () => {
                                         alt={product.name}
                                         className="w-full h-full object-cover"
                                     />
+                                    {/* Wishlist Heart Button */}
+                                    <button
+                                        onClick={(e) => toggleWishlist(e, product._id)}
+                                        disabled={togglingWishlist === product._id}
+                                        className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all group/heart"
+                                    >
+                                        {togglingWishlist === product._id ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                                        ) : (
+                                            <FaHeart
+                                                className={`w-5 h-5 transition-all ${wishlistItems.includes(product._id)
+                                                    ? 'text-red-500 animate-pulse'
+                                                    : 'text-gray-300 group-hover/heart:text-red-400'
+                                                    }`}
+                                            />
+                                        )}
+                                    </button>
                                     {product.stock <= 0 && (
                                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                                             <span className="text-white font-bold text-lg">Out of Stock</span>
@@ -252,37 +375,85 @@ const Products = () => {
                                     {/* Price and Action Buttons */}
                                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                                         <span className="text-lg font-bold text-gray-800">₹{product.price?.toFixed(2) || '0.00'}</span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={(e) => handleAddToCart(e, product._id)}
-                                                disabled={addingToCart === product._id || product.stock <= 0}
-                                                className={`p-2 text-white rounded-lg transition-all shadow-sm hover:shadow-md ${addingToCart === product._id || product.stock <= 0
-                                                    ? 'bg-gray-400 cursor-not-allowed'
-                                                    : 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 cursor-pointer'
-                                                    }`}
-                                            >
-                                                <FaShoppingCart className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleProductClick(product._id);
-                                                }}
-                                                disabled={product.stock <= 0}
-                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${product.stock <= 0
-                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                    : 'bg-white border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 group cursor-pointer'
-                                                    }`}
-                                            >
-                                                <span className={`text-sm font-medium ${product.stock <= 0 ? 'text-gray-400' : 'text-gray-700 group-hover:text-orange-500'}`}>
-                                                    {product.stock <= 0 ? 'Unavailable' : 'Buy now'}
-                                                </span>
-                                            </button>
-                                        </div>
+                                        {(() => {
+                                            const isInCart = cartItems.some(item =>
+                                                (item.productId?._id || item.productId) === product._id
+                                            );
+                                            const cartItem = cartItems.find(item =>
+                                                (item.productId?._id || item.productId) === product._id
+                                            );
+
+                                            if (isInCart) {
+                                                return (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate('/cart');
+                                                        }}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-orange-500 text-orange-600 rounded-lg transition-all shadow-sm hover:shadow-md hover:bg-orange-50 cursor-pointer"
+                                                    >
+                                                        <FaCheckCircle className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">
+                                                            Go to Cart ({cartItem?.quantity || 1})
+                                                        </span>
+                                                    </button>
+                                                );
+                                            }
+
+                                            return (
+                                                <button
+                                                    onClick={(e) => handleAddToCart(e, product._id)}
+                                                    disabled={addingToCart === product._id || product.stock <= 0}
+                                                    className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-all shadow-sm hover:shadow-md ${addingToCart === product._id || product.stock <= 0
+                                                            ? 'bg-gray-400 cursor-not-allowed'
+                                                            : 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 cursor-pointer'
+                                                        }`}
+                                                >
+                                                    {addingToCart === product._id ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                            <span className="text-sm font-medium">Adding...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FaShoppingCart className="w-4 h-4" />
+                                                            <span className="text-sm font-medium">
+                                                                {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!loading && !error && selectedFilter === 'All' && !searchQuery.trim() && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-4 mt-8">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-6 py-3 bg-white border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:border-orange-500 hover:text-orange-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:text-gray-700"
+                        >
+                            Previous
+                        </button>
+                        <div className="flex items-center gap-2">
+                            <span className="text-gray-700 font-semibold">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-6 py-3 bg-white border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:border-orange-500 hover:text-orange-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:text-gray-700"
+                        >
+                            Next
+                        </button>
                     </div>
                 )}
             </div>

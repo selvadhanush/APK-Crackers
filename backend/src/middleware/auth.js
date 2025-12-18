@@ -37,8 +37,16 @@ export const authenticate = async (req, res, next) => {
       req.role = "customer";
     }
 
+    // Uncomment for debugging auth issues:
+    // console.log("🔐 Auth successful:", {
+    //   userId: user._id,
+    //   role: req.role,
+    //   userType: user.constructor.modelName
+    // });
+
     next();
   } catch (error) {
+    console.error("❌ Auth error:", error.message);
     return res.status(401).json({
       message: "Invalid or expired token",
     });

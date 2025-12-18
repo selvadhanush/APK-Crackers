@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdPerson, MdLock, MdVisibility, MdVisibilityOff, MdAdminPanelSettings } from 'react-icons/md';
 import { FaShieldAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import API from '../../../../api';
 
 const Adminlogin = () => {
@@ -26,6 +27,21 @@ const Adminlogin = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Check if user is already logged in as another role
+        const existingRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+        if (existingRole && existingRole !== 'admin') {
+            const roleNames = {
+                'customer': 'Customer',
+                'seller': 'Seller'
+            };
+            toast.error(`You are already logged in as ${roleNames[existingRole]}. Please logout and try again.`, {
+                position: "top-center",
+                autoClose: 4000,
+            });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -44,18 +60,23 @@ const Adminlogin = () => {
                 const loginTime = new Date().getTime();
                 localStorage.setItem('loginTime', loginTime.toString());
 
+                toast.success('Admin login successful!');
+
                 // Navigate to admin dashboard
                 navigate('/admin-dashboard');
             }
         } catch (err) {
             console.error('Admin login error:', err);
+            let errorMessage = '';
             if (err.response?.status === 404) {
-                setError('Admin account not found. Please check your username.');
+                errorMessage = 'Admin account not found. Please check your username.';
             } else if (err.response?.status === 400) {
-                setError('Invalid credentials. Please try again.');
+                errorMessage = 'Invalid credentials. Please try again.';
             } else {
-                setError(err.response?.data?.message || 'Login failed. Please try again.');
+                errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
             }
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -161,8 +182,8 @@ const Adminlogin = () => {
                             type="submit"
                             disabled={loading}
                             className={`w-full py-3 text-white font-bold rounded-xl transition-all shadow-lg ${loading
-                                    ? 'bg-gray-600 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 transform hover:-translate-y-0.5'
+                                ? 'bg-gray-600 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 transform hover:-translate-y-0.5'
                                 }`}
                         >
                             {loading ? (

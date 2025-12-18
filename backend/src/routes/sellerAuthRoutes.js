@@ -3,8 +3,8 @@ import { registerSeller, loginSeller } from "../controllers/sellerAuthController
 
 const router = express.Router();
 
-// ⭐ Seller Signup
-router.post("/signup", registerSeller);
+// ⭐ Seller Register
+router.post("/register", registerSeller);
 
 // ⭐ Seller Login
 router.post("/login", loginSeller);

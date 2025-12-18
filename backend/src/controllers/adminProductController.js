@@ -87,3 +87,24 @@ export const getAllProductsCount = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+// ⭐ GET ALL PRODUCTS (APPROVED, PENDING, REJECTED) FOR ADMIN
+export const getAllProducts = async (req, res) => {
+  try {
+    const { status } = req.query; // Optional filter by status
+
+    let query = {};
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      query.status = status;
+    }
+
+    const products = await Product.find(query)
+      .populate('sellerId', 'name businessName email')
+      .sort({ createdAt: -1 }); // Newest first
+
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

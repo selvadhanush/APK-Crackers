@@ -9,7 +9,7 @@ const generateToken = (id) => {
   return jwt.sign(
     { id, role: "admin" },        // include role for authorization
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }  // e.g., "7d"
+    { expiresIn: "24h" }  // Token expires in 24 hours
   );
 };
 

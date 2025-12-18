@@ -1,4 +1,5 @@
 import Order from "../models/Order.js";
+import Payout from "../models/Payout.js";
 import { sendNotification } from "../utils/sendNotification.js";   // ⭐ IMPORTANT
 
 
@@ -12,6 +13,28 @@ export const getSellerOrders = async (req, res) => {
       .populate("items.productId");
 
     res.json(orders);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// ⭐ GET SINGLE ORDER BY ID FOR SELLER
+export const getSellerOrderById = async (req, res) => {
+  try {
+    const sellerId = req.user._id;
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ _id: orderId, sellerId })
+      .populate("customerId")
+      .populate("items.productId");
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json(order);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -54,6 +77,34 @@ export const updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
+    // ⭐ CREATE PAYOUT FOR COD ORDERS WHEN DELIVERED
+    if (status === "delivered" && order.paymentMethod === "cod") {
+      // Check if payout already exists for this order
+      const existingPayout = await Payout.findOne({ orderId: order._id });
+
+      if (!existingPayout) {
+        const commissionRate = 0.1;
+        const commission = order.totalAmount * commissionRate;
+        const netAmount = order.totalAmount - commission;
+
+        const settlementDate = new Date();
+        settlementDate.setDate(settlementDate.getDate() + 7);
+
+        await Payout.create({
+          sellerId: order.sellerId,
+          orderId: order._id,
+          totalAmount: order.totalAmount,
+          commission,
+          netAmount,
+          settlementDate,
+          status: "pending",
+        });
+
+        // Update payment status to success for COD orders
+        order.paymentStatus = "success";
+        await order.save();
+      }
+    }
 
     // ⭐ SEND NOTIFICATION TO CUSTOMER AFTER STATUS UPDATE
     await sendNotification(

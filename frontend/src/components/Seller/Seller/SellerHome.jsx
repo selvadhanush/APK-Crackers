@@ -8,6 +8,7 @@ import Myproducts from '../components/Myproducts';
 import KycVerify from '../components/KycVerify';
 import SellerSettings from '../components/settings';
 import SellerProfile from '../components/SellerProfile';
+import SellerPayouts from '../components/SellerPayouts';
 
 const SellerHome = () => {
     const [activePage, setActivePage] = useState('Dashboard');
@@ -31,6 +32,8 @@ const SellerHome = () => {
                 return <SellerOrders onViewOrder={handleViewOrder} />;
             case 'OrderView':
                 return <SellerOrderview orderId={selectedOrderId} />;
+            case 'Payouts':
+                return <SellerPayouts />;
             case 'Add Products':
                 return <ProductForm />;
             case 'My Products':
