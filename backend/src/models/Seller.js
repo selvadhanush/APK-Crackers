@@ -1,5 +1,41 @@
 import mongoose from "mongoose";
 
+const businessAddressSchema = new mongoose.Schema(
+  {
+    pincode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    addressLine: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    landmark: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: false } 
+);
+
+
 const sellerSchema = new mongoose.Schema(
   {
     name: {
@@ -28,7 +64,7 @@ const sellerSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
-      select: false, // ⭐ security
+      select: false,
     },
 
     businessName: {
@@ -43,10 +79,10 @@ const sellerSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ⭐ Embedded business address
     businessAddress: {
-      type: String,
+      type: businessAddressSchema,
       required: true,
-      trim: true,
     },
 
     // ⭐ KYC status (USED BY sellerGuard.js)
