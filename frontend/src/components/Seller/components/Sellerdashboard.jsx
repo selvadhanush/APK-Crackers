@@ -20,9 +20,39 @@ const Sellerdashboard = () => {
     const [sellerInfo, setSellerInfo] = useState({ name: '', kycStatus: 'not_submitted' });
 
     useEffect(() => {
-        fetchDashboardData();
-        fetchRecentOrders();
-        loadSellerInfo();
+        // Load seller info first
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                const kycStatus = userData.kycStatus || 'not_submitted';
+                setSellerInfo({
+                    name: userData.name || userData.businessName || 'Seller',
+                    kycStatus: kycStatus
+                });
+
+                // Only fetch data if KYC is approved
+                if (kycStatus === 'approved') {
+                    fetchDashboardData();
+                    fetchRecentOrders();
+                } else {
+                    // Set default values for non-approved sellers
+                    setDashboardData({
+                        totalOrders: 0,
+                        totalEarnings: 0,
+                        deliveredOrders: 0,
+                        pendingOrders: 0
+                    });
+                    setRecentOrders([]);
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                setLoading(false);
+            }
+        } else {
+            setLoading(false);
+        }
     }, []);
 
     const loadSellerInfo = () => {
@@ -41,23 +71,54 @@ const Sellerdashboard = () => {
     };
 
     const fetchDashboardData = async () => {
+        // Check KYC status before making API call
+        if (sellerInfo.kycStatus !== 'approved') {
+            setDashboardData({
+                totalOrders: 0,
+                totalEarnings: 0,
+                deliveredOrders: 0,
+                pendingOrders: 0
+            });
+            setLoading(false);
+            return;
+        }
+
         try {
             const response = await API.get('/seller/analytics/dashboard');
             setDashboardData(response.data);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching dashboard data:', error);
+            // Silently handle KYC not approved error
+            if (error.response?.status === 403) {
+                // KYC not approved - this is expected, don't log error
+                setDashboardData({
+                    totalOrders: 0,
+                    totalEarnings: 0,
+                    deliveredOrders: 0,
+                    pendingOrders: 0
+                });
+            }
             setLoading(false);
         }
     };
 
     const fetchRecentOrders = async () => {
+        // Check KYC status before making API call
+        if (sellerInfo.kycStatus !== 'approved') {
+            setRecentOrders([]);
+            return;
+        }
+
         try {
             const response = await API.get('/seller/orders');
             // Get only the latest 6 orders
             setRecentOrders(response.data.slice(0, 6));
         } catch (error) {
-            console.error('Error fetching orders:', error);
+            // Silently handle KYC not approved error
+            if (error.response?.status === 403) {
+                // KYC not approved - this is expected, don't log error
+                setRecentOrders([]);
+            }
         }
     };
 

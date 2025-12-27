@@ -44,7 +44,17 @@ export const getCart = async (req, res) => {
 
     if (!cart) return res.json({ items: [] });
 
-    res.json(cart);
+    // Filter out items with null/deleted products
+    const validItems = cart.items.filter(item => item.productId !== null);
+
+    // If any items were removed, update the cart in database
+    if (validItems.length !== cart.items.length) {
+      cart.items = validItems;
+      await cart.save();
+      console.log(`🧹 Cleaned up ${cart.items.length - validItems.length} deleted products from cart for user ${customerId}`);
+    }
+
+    res.json({ ...cart.toObject(), items: validItems });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

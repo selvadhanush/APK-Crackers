@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaHeart, FaShare } from 'react-icons/fa';
+import { FaStar, FaShoppingCart, FaMinus, FaPlus, FaShare } from 'react-icons/fa';
+import { BsFillBagHeartFill } from 'react-icons/bs';
 import { MdLocalShipping, MdSecurity, MdVerified } from 'react-icons/md';
-import API from '../../api';
+import API from '../../../api';
+import Topbar from './Topbar';
+import Footer from './Footer';
 
 const Productview = () => {
     const navigate = useNavigate();
@@ -17,7 +20,6 @@ const Productview = () => {
     const [togglingWishlist, setTogglingWishlist] = useState(false);
     const [isInCart, setIsInCart] = useState(false);
 
-    // Review states
     const [reviews, setReviews] = useState([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [showReviewForm, setShowReviewForm] = useState(false);
@@ -26,59 +28,99 @@ const Productview = () => {
     const [submittingReview, setSubmittingReview] = useState(false);
     const [userReview, setUserReview] = useState(null);
 
+    // Memoize token check
+    const isLoggedIn = useMemo(() => !!localStorage.getItem('token'), []);
+
+    // Fetch all data in parallel for faster loading
     useEffect(() => {
-        if (id) {
-            fetchProduct();
-            fetchSimilarProducts();
-            checkWishlistStatus();
-            checkCartStatus();
-            fetchReviews();
-        }
-    }, [id]);
+        if (!id) return;
 
-    const fetchProduct = async () => {
-        try {
+        const fetchAllData = async () => {
             setLoading(true);
-            const response = await API.get(`/products/customer/product/${id}`);
-            setProduct(response.data);
-            setError('');
-        } catch (error) {
-            console.error('Error fetching product:', error);
-            setError('Failed to load product. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
+            try {
+                // Fetch product first (most important)
+                const productPromise = API.get(`/products/customer/product/${id}`);
+                const similarPromise = API.get('/products/customer');
+                const reviewsPromise = API.get(`/reviews/${id}`);
 
-    const fetchSimilarProducts = async () => {
-        try {
-            const response = await API.get('/products/customer');
-            const productsData = Array.isArray(response.data) ? response.data : [];
-            // Filter out current product and limit to 6 items
-            const filtered = productsData.filter(p => p._id !== id).slice(0, 6);
-            setSimilarProducts(filtered);
-        } catch (error) {
-            console.error('Error fetching similar products:', error);
-        }
-    };
+                // Fetch wishlist and cart only if logged in
+                const promises = [productPromise, similarPromise, reviewsPromise];
+                if (isLoggedIn) {
+                    promises.push(API.get('/wishlist'));
+                    promises.push(API.get('/cart'));
+                }
 
-    const checkWishlistStatus = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
+                const results = await Promise.allSettled(promises);
 
-            const response = await API.get('/wishlist');
-            // Backend returns array directly, not wrapped in object
-            const wishlistProductIds = (Array.isArray(response.data) ? response.data : []).map(item => item.productId._id);
-            setIsInWishlist(wishlistProductIds.includes(id));
-        } catch (error) {
-            console.error('Error checking wishlist:', error);
-        }
-    };
+                // Handle product
+                if (results[0].status === 'fulfilled') {
+                    setProduct(results[0].value.data);
+                    setError('');
+                } else {
+                    setError('Failed to load product. Please try again later.');
+                }
 
-    const toggleWishlist = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
+                // Handle similar products
+                if (results[1].status === 'fulfilled') {
+                    const productsData = Array.isArray(results[1].value.data) ? results[1].value.data : [];
+                    const filtered = productsData.filter(p => p._id !== id).slice(0, 6);
+                    setSimilarProducts(filtered);
+                }
+
+                // Handle reviews
+                if (results[2].status === 'fulfilled') {
+                    const reviewsData = Array.isArray(results[2].value.data) ? results[2].value.data : [];
+                    setReviews(reviewsData);
+
+                    if (isLoggedIn) {
+                        const userId = JSON.parse(localStorage.getItem('user'))?._id;
+                        const myReview = reviewsData.find(r => r.customerId._id === userId);
+                        setUserReview(myReview || null);
+                    }
+                }
+
+                // Handle wishlist
+                if (results[3]?.status === 'fulfilled') {
+                    const wishlistProductIds = (Array.isArray(results[3].value.data) ? results[3].value.data : [])
+                        .map(item => item.productId._id);
+                    setIsInWishlist(wishlistProductIds.includes(id));
+                }
+
+                // Handle cart
+                if (results[4]?.status === 'fulfilled') {
+                    const cartItems = results[4].value.data.items || [];
+                    const productInCart = cartItems.some(item =>
+                        (item.productId?._id || item.productId) === id
+                    );
+                    setIsInCart(productInCart);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setError('Failed to load product. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, [id, isLoggedIn]);
+
+    // Auto-rotate images
+    useEffect(() => {
+        if (!product || !product.images || product.images.length <= 1) return;
+
+        const interval = setInterval(() => {
+            setSelectedImage((prev) => {
+                const totalImages = product.images.length;
+                return (prev + 1) % totalImages;
+            });
+        }, 3000); // Increased to 3 seconds for better UX
+
+        return () => clearInterval(interval);
+    }, [product]);
+
+    const toggleWishlist = useCallback(async () => {
+        if (!isLoggedIn) {
             alert('Please login to add items to wishlist');
             navigate('/Login');
             return;
@@ -102,7 +144,6 @@ const Productview = () => {
                 alert('Session expired. Please login again');
                 navigate('/Login');
             } else if (error.response?.status === 400 && error.response?.data?.message === 'Already in wishlist') {
-                // Item already in wishlist, just update UI
                 setIsInWishlist(true);
                 alert('Already in wishlist');
             } else {
@@ -111,90 +152,58 @@ const Productview = () => {
         } finally {
             setTogglingWishlist(false);
         }
-    };
+    }, [isInWishlist, id, isLoggedIn, navigate]);
 
-    const checkCartStatus = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await API.get('/cart');
-            const cartItems = response.data.items || [];
-            const productInCart = cartItems.some(item =>
-                (item.productId?._id || item.productId) === id
-            );
-            setIsInCart(productInCart);
-        } catch (error) {
-            console.error('Error checking cart:', error);
-        }
-    };
-
-    const handleQuantityChange = (action) => {
+    const handleQuantityChange = useCallback((action) => {
         if (!product) return;
         if (action === 'increase' && quantity < product.stock) {
             setQuantity(quantity + 1);
         } else if (action === 'decrease' && quantity > 1) {
             setQuantity(quantity - 1);
         }
-    };
+    }, [product, quantity]);
 
-    const handlePlaceOrder = async () => {
+    const handlePlaceOrder = useCallback(async () => {
+        if (isInCart) {
+            navigate('/Payment');
+            return;
+        }
+
         try {
-            // Always add/update cart with current quantity
-            // The backend will update quantity if product already exists in cart
             await API.post('/cart/add', {
                 productId: product._id,
                 quantity
             });
-            setIsInCart(true); // Mark as in cart
-
-            // Navigate to payment page
+            setIsInCart(true);
             navigate('/Payment');
         } catch (error) {
             console.error('Buy now error:', error);
             alert('Failed to process. Please try again.');
         }
-    };
+    }, [isInCart, product, quantity, navigate]);
 
-    const handleAddToCart = async () => {
+    const handleAddToCart = useCallback(async () => {
+        if (isInCart) {
+            navigate('/Cart');
+            return;
+        }
+
         try {
             await API.post('/cart/add', {
                 productId: product._id,
                 quantity
             });
-            setIsInCart(true); // Update state
+            setIsInCart(true);
             alert(`Added ${quantity} item(s) to cart successfully!`);
         } catch (error) {
             console.error('Add to cart error:', error);
             alert(error.response?.data?.message || 'Failed to add to cart');
         }
-    };
+    }, [isInCart, product, quantity, navigate]);
 
-    // Review Functions
-    const fetchReviews = async () => {
-        try {
-            setLoadingReviews(true);
-            const response = await API.get(`/reviews/${id}`);
-            setReviews(Array.isArray(response.data) ? response.data : []);
-
-            // Check if current user has reviewed
-            const token = localStorage.getItem('token');
-            if (token) {
-                const userId = JSON.parse(localStorage.getItem('user'))?._id;
-                const myReview = response.data.find(r => r.customerId._id === userId);
-                setUserReview(myReview || null);
-            }
-        } catch (error) {
-            console.error('Error fetching reviews:', error);
-        } finally {
-            setLoadingReviews(false);
-        }
-    };
-
-    const handleAddReview = async (e) => {
+    const handleAddReview = useCallback(async (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (!token) {
+        if (!isLoggedIn) {
             alert('Please login to add a review');
             navigate('/Login');
             return;
@@ -210,17 +219,19 @@ const Productview = () => {
             alert('Review added successfully!');
             setShowReviewForm(false);
             setReviewForm({ rating: 5, reviewText: '' });
-            fetchReviews();
-            fetchProduct(); // Refresh product to get updated rating
+
+            // Refresh reviews
+            const response = await API.get(`/reviews/${id}`);
+            setReviews(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Add review error:', error);
             alert(error.response?.data?.message || 'Failed to add review');
         } finally {
             setSubmittingReview(false);
         }
-    };
+    }, [id, reviewForm, isLoggedIn, navigate]);
 
-    const handleUpdateReview = async (e) => {
+    const handleUpdateReview = useCallback(async (e) => {
         e.preventDefault();
         setSubmittingReview(true);
         try {
@@ -232,125 +243,139 @@ const Productview = () => {
             setShowReviewForm(false);
             setEditingReview(null);
             setReviewForm({ rating: 5, reviewText: '' });
-            fetchReviews();
-            fetchProduct();
+
+            // Refresh reviews
+            const response = await API.get(`/reviews/${id}`);
+            setReviews(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Update review error:', error);
             alert(error.response?.data?.message || 'Failed to update review');
         } finally {
             setSubmittingReview(false);
         }
-    };
+    }, [editingReview, reviewForm, id]);
 
-    const handleDeleteReview = async (reviewId) => {
+    const handleDeleteReview = useCallback(async (reviewId) => {
         if (!confirm('Are you sure you want to delete your review?')) return;
 
         try {
             await API.delete(`/reviews/delete/${reviewId}`);
             alert('Review deleted successfully!');
-            fetchReviews();
-            fetchProduct();
+
+            // Refresh reviews
+            const response = await API.get(`/reviews/${id}`);
+            setReviews(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Delete review error:', error);
             alert(error.response?.data?.message || 'Failed to delete review');
         }
-    };
+    }, [id]);
 
-    const openEditReview = (review) => {
+    const openEditReview = useCallback((review) => {
         setEditingReview(review._id);
         setReviewForm({
             rating: review.rating,
             reviewText: review.reviewText
         });
         setShowReviewForm(true);
-    };
+    }, []);
 
-    const closeReviewForm = () => {
+    const closeReviewForm = useCallback(() => {
         setShowReviewForm(false);
         setEditingReview(null);
         setReviewForm({ rating: 5, reviewText: '' });
-    };
+    }, []);
 
-    const calculateAverageRating = () => {
+    // Memoize calculations
+    const averageRating = useMemo(() => {
         if (reviews.length === 0) return 0;
         const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
         return (sum / reviews.length).toFixed(1);
-    };
+    }, [reviews]);
 
-    const getRatingDistribution = () => {
+    const ratingDistribution = useMemo(() => {
         const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
         reviews.forEach(review => {
             distribution[review.rating]++;
         });
         return distribution;
-    };
+    }, [reviews]);
+
+    const productImages = useMemo(() =>
+        product?.images && product.images.length > 0
+            ? product.images
+            : ['https://img.freepik.com/premium-photo/illustration-diwali-crackers-in-the-sky-white-background_756405-49701.jpg?w=2000']
+        , [product]);
+
+    const inStock = useMemo(() => product?.stock > 0, [product]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-medium">Loading product details...</p>
+                </div>
             </div>
         );
     }
 
     if (error || !product) {
         return (
-            <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-                <p className="text-gray-600 text-lg mb-4">{error || 'Product not found'}</p>
-                <button
-                    onClick={() => navigate('/')}
-                    className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                    Go Back to Products
-                </button>
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+                <div className="text-center">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-4xl">⚠️</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
+                    <p className="text-gray-600 mb-6">{error || 'The product you are looking for does not exist'}</p>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
+                    >
+                        Browse All Products
+                    </button>
+                </div>
             </div>
         );
     }
 
-    const productImages = product.images && product.images.length > 0
-        ? product.images
-        : ['https://img.freepik.com/premium-photo/illustration-diwali-crackers-in-the-sky-white-background_756405-49701.jpg?w=2000'];
-
-    const inStock = product.stock > 0;
-
     return (
-        <div className="min-h-screen bg-white">
-            {/* Main Content */}
+        <div className="min-h-screen bg-gray-50">
+            <Topbar />
             <div className="max-w-screen-2xl mx-auto px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left - Images (5 columns) */}
                     <div className="lg:col-span-5">
                         <div className="sticky top-8">
-                            {/* Main Image */}
-                            <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden mb-4">
+                            <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden mb-4 shadow-sm">
                                 <img
                                     src={productImages[selectedImage]}
                                     alt={product.name}
-                                    className="w-full h-[500px] object-contain p-8"
+                                    className="w-full h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px] object-contain p-4 sm:p-6 md:p-8"
+                                    loading="lazy"
                                 />
                                 <div className="absolute bottom-4 right-4 flex gap-2">
                                     <button
                                         onClick={toggleWishlist}
                                         disabled={togglingWishlist}
-                                        className="p-3 bg-white rounded-full shadow-lg hover:scale-110 transition-all"
+                                        className="p-2 sm:p-3 bg-white rounded-full shadow-lg hover:scale-110 transition-all"
                                     >
                                         {togglingWishlist ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                                            <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-orange-500"></div>
                                         ) : (
-                                            <FaHeart className={`w-5 h-5 transition-all ${isInWishlist
-                                                ? 'text-red-500 animate-pulse'
+                                            <BsFillBagHeartFill className={`w-4 h-4 sm:w-5 sm:h-5 transition-all ${isInWishlist
+                                                ? 'text-red-500'
                                                 : 'text-gray-400 hover:text-red-400'
                                                 }`} />
                                         )}
                                     </button>
-                                    <button className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors">
-                                        <FaShare className="w-5 h-5 text-gray-700" />
+                                    <button className="p-2 sm:p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors">
+                                        <FaShare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Thumbnail Images */}
-                            <div className="grid grid-cols-4 gap-3">
+                            <div className="grid grid-cols-4 gap-2 sm:gap-3">
                                 {productImages.map((image, index) => (
                                     <button
                                         key={index}
@@ -363,13 +388,13 @@ const Productview = () => {
                                         <img
                                             src={image}
                                             alt={`${product.name} ${index + 1}`}
-                                            className="w-full h-20 object-contain p-2"
+                                            className="w-full h-16 sm:h-20 object-contain p-1 sm:p-2"
+                                            loading="lazy"
                                         />
                                     </button>
                                 ))}
                             </div>
 
-                            {/* Action Buttons - Desktop */}
                             <div className="hidden lg:flex gap-3 mt-6">
                                 <button
                                     onClick={handleAddToCart}
@@ -377,7 +402,7 @@ const Productview = () => {
                                     className="flex-1 py-4 bg-orange-100 border-2 border-orange-500 text-orange-600 font-bold text-lg rounded-lg hover:bg-orange-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FaShoppingCart className="w-5 h-5" />
-                                    ADD TO CART
+                                    {isInCart ? 'GO TO CART' : 'ADD TO CART'}
                                 </button>
                                 <button
                                     onClick={handlePlaceOrder}
@@ -390,12 +415,9 @@ const Productview = () => {
                         </div>
                     </div>
 
-                    {/* Right - Product Details (7 columns) */}
                     <div className="lg:col-span-7">
-                        {/* Product Title */}
                         <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
 
-                        {/* Category */}
                         <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
                             <span className="px-3 py-2 bg-orange-100 text-orange-700 rounded font-bold text-sm capitalize">
                                 {product.category || 'General'}
@@ -501,13 +523,13 @@ const Productview = () => {
                         <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 border border-orange-200">
                             <div className="text-center">
                                 <div className="text-5xl font-bold text-gray-900 mb-2">
-                                    {calculateAverageRating()}
+                                    {averageRating}
                                 </div>
                                 <div className="flex items-center justify-center gap-1 mb-2">
                                     {[...Array(5)].map((_, index) => (
                                         <FaStar
                                             key={index}
-                                            className={`w-6 h-6 ${index < Math.round(calculateAverageRating())
+                                            className={`w-6 h-6 ${index < Math.round(averageRating)
                                                 ? 'text-yellow-400'
                                                 : 'text-gray-300'
                                                 }`}
@@ -521,8 +543,7 @@ const Productview = () => {
                         {/* Rating Distribution */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-200">
                             {[5, 4, 3, 2, 1].map((star) => {
-                                const distribution = getRatingDistribution();
-                                const count = distribution[star];
+                                const count = ratingDistribution[star];
                                 const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                                 return (
                                     <div key={star} className="flex items-center gap-3 mb-2">
@@ -718,7 +739,8 @@ const Productview = () => {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* Mobile: Horizontal cards (1 per row), Tablet+: Vertical cards in grid */}
+                    <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {similarProducts.map((item) => (
                             <div
                                 key={item._id}
@@ -726,22 +748,91 @@ const Productview = () => {
                                     navigate(`/product/${item._id}`);
                                     window.scrollTo(0, 0);
                                 }}
-                                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
+                                className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden hover:shadow-2xl hover:border-orange-400 transition-all duration-300 cursor-pointer group"
                             >
-                                <div className="relative overflow-hidden bg-gray-50">
-                                    <img
-                                        src={item.images?.[0] || 'https://img.freepik.com/premium-photo/illustration-diwali-crackers-in-the-sky-white-background_756405-49701.jpg?w=2000'}
-                                        alt={item.name}
-                                        className="w-full h-40 object-contain p-4 group-hover:scale-110 transition-transform duration-300"
-                                    />
-                                </div>
-                                <div className="p-3">
-                                    <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 h-10">{item.name}</h3>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-lg font-bold text-gray-900">₹{item.price?.toFixed(0) || '0'}</span>
-                                        <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-bold capitalize">
-                                            {item.category || 'General'}
-                                        </span>
+                                {/* Mobile: Horizontal layout, Desktop: Vertical layout */}
+                                <div className="flex md:flex-col">
+                                    {/* Image Section */}
+                                    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 w-40 md:w-full flex-shrink-0">
+                                        <img
+                                            src={item.images?.[0] || 'https://img.freepik.com/premium-photo/illustration-diwali-crackers-in-the-sky-white-background_756405-49701.jpg?w=2000'}
+                                            alt={item.name}
+                                            className="w-full h-48 md:h-52 object-contain p-4 md:p-4 group-hover:scale-105 transition-transform duration-300"
+                                            loading="lazy"
+                                        />
+                                        {/* Stock Badge */}
+                                        <div className="absolute top-3 right-3">
+                                            {item.stock > 0 ? (
+                                                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full shadow-lg">
+                                                    In Stock
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
+                                                    Out of Stock
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Details Section */}
+                                    <div className="p-4 md:p-4 flex-1 flex flex-col">
+                                        {/* Category Badge */}
+                                        <div className="mb-2">
+                                            <span className="inline-block text-xs px-2.5 py-1 bg-orange-100 text-orange-700 rounded-lg font-bold capitalize">
+                                                {item.category || 'General'}
+                                            </span>
+                                        </div>
+
+                                        {/* Product Name */}
+                                        <h3 className="font-bold text-gray-900 text-base md:text-base mb-2 line-clamp-2 leading-tight">
+                                            {item.name}
+                                        </h3>
+
+                                        {/* Description - Desktop Only */}
+                                        {item.description && (
+                                            <p className="hidden md:block text-xs text-gray-600 mb-2 line-clamp-2 leading-relaxed">
+                                                {item.description}
+                                            </p>
+                                        )}
+
+                                        {/* Spacer to push bottom content down */}
+                                        <div className="flex-1"></div>
+
+                                        {/* Price Section */}
+                                        <div className="mb-2">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-xl md:text-2xl font-bold text-gray-900">
+                                                    ₹{item.price?.toFixed(0) || '0'}
+                                                </span>
+                                                <span className="text-xs text-gray-400 line-through">
+                                                    ₹{((item.price || 0) * 1.2).toFixed(0)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Stock Availability */}
+                                        <div className="mb-3">
+                                            {item.stock > 0 ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    <span className="text-xs text-green-600 font-semibold">
+                                                        {item.stock} units available
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                    <span className="text-xs text-red-600 font-semibold">
+                                                        Currently unavailable
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* View Details Button */}
+                                        <button className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg text-sm">
+                                            View Details
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -759,7 +850,7 @@ const Productview = () => {
                         className="flex-1 py-3 bg-orange-100 border-2 border-orange-500 text-orange-600 font-bold rounded-lg flex items-center justify-center gap-2"
                     >
                         <FaShoppingCart className="w-5 h-5" />
-                        CART
+                        {isInCart ? 'GO TO CART' : 'CART'}
                     </button>
                     <button
                         onClick={handlePlaceOrder}
@@ -770,6 +861,8 @@ const Productview = () => {
                     </button>
                 </div>
             </div>
+
+            <Footer />
         </div >
     );
 };

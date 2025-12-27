@@ -65,7 +65,7 @@ const SellerRegister = () => {
                 businessAddress: formData.businessAddress
             };
 
-            const response = await API.post('/seller/auth/signup', registrationData);
+            const response = await API.post('/seller/auth/register', registrationData);
 
             if (response.data.token) {
                 // Store token in localStorage
@@ -88,46 +88,46 @@ const SellerRegister = () => {
         }
     };
 
-    const inputClasses = "w-full px-4 py-3 rounded-lg border-2 border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all placeholder:text-gray-400 bg-white hover:border-gray-300";
-    const labelClasses = "block text-sm font-semibold text-gray-700 mb-2";
+    const inputClasses = "w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border-2 border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all placeholder:text-gray-400 bg-white hover:border-gray-300";
+    const labelClasses = "block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2";
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50 flex items-center justify-center p-3 sm:p-4 md:p-6 py-6 sm:py-8">
             <div className="w-full max-w-4xl">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl mb-4 shadow-lg">
-                        <MdStore className="w-8 h-8 text-white" />
+                <div className="text-center mb-6 sm:mb-8">
+                    <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 shadow-lg">
+                        <MdStore className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Seller Registration</h1>
-                    <p className="text-gray-600">Register your business to start selling on APK Crackers</p>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2 px-4">Seller Registration</h1>
+                    <p className="text-sm sm:text-base text-gray-600 px-4">Register your business to start selling on APK Crackers</p>
                 </div>
 
                 {/* Form Card */}
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 md:p-8">
                     {/* Error Message */}
                     {error && (
-                        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                            <p className="text-sm font-medium">{error}</p>
+                        <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg">
+                            <p className="text-xs sm:text-sm font-medium">{error}</p>
                         </div>
                     )}
 
                     {/* Success Message */}
                     {success && (
-                        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                            <p className="text-sm font-medium">{success}</p>
+                        <div className="mb-4 sm:mb-6 bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg">
+                            <p className="text-xs sm:text-sm font-medium">{success}</p>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         {/* Business Information */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
-                                <MdBusiness className="text-orange-600 text-xl" />
-                                <h2 className="text-lg font-bold text-gray-900">Business Information</h2>
+                        <div className="space-y-3 sm:space-y-4">
+                            <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b border-gray-200">
+                                <MdBusiness className="text-orange-600 text-lg sm:text-xl" />
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900">Business Information</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className={labelClasses}>Business Name *</label>
                                     <input
@@ -173,10 +173,10 @@ const SellerRegister = () => {
                         </div>
 
                         {/* Owner Information */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
-                                <MdPerson className="text-orange-600 text-xl" />
-                                <h2 className="text-lg font-bold text-gray-900">Owner Information</h2>
+                        <div className="space-y-3 sm:space-y-4">
+                            <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b border-gray-200">
+                                <MdPerson className="text-orange-600 text-lg sm:text-xl" />
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900">Owner Information</h2>
                             </div>
 
                             <div>
@@ -192,19 +192,19 @@ const SellerRegister = () => {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className={labelClasses}>Email Address *</label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <MdEmail className="text-gray-400" />
+                                        <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                                            <MdEmail className="text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                                         </div>
                                         <input
                                             type="email"
                                             name="email"
                                             value={formData.email}
                                             onChange={handleInputChange}
-                                            className={`${inputClasses} pl-11`}
+                                            className={`${inputClasses} pl-10 sm:pl-11`}
                                             placeholder="business@example.com"
                                             required
                                         />
@@ -214,15 +214,15 @@ const SellerRegister = () => {
                                 <div>
                                     <label className={labelClasses}>Phone Number *</label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <MdPhone className="text-gray-400" />
+                                        <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                                            <MdPhone className="text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                                         </div>
                                         <input
                                             type="tel"
                                             name="phone"
                                             value={formData.phone}
                                             onChange={handleInputChange}
-                                            className={`${inputClasses} pl-11`}
+                                            className={`${inputClasses} pl-10 sm:pl-11`}
                                             placeholder="+91 98765 43210"
                                             required
                                         />
@@ -232,13 +232,13 @@ const SellerRegister = () => {
                         </div>
 
                         {/* Security */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
-                                <MdLock className="text-orange-600 text-xl" />
-                                <h2 className="text-lg font-bold text-gray-900">Security</h2>
+                        <div className="space-y-3 sm:space-y-4">
+                            <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b border-gray-200">
+                                <MdLock className="text-orange-600 text-lg sm:text-xl" />
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900">Security</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className={labelClasses}>Password *</label>
                                     <input
@@ -269,29 +269,29 @@ const SellerRegister = () => {
                         </div>
 
                         {/* Submit Buttons */}
-                        <div className="flex gap-4 pt-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-3 sm:pt-4">
                             <button
                                 type="button"
                                 onClick={() => navigate('/')}
-                                className="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all"
+                                className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`flex-1 px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 ${loading
+                                className={`w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 ${loading
                                     ? 'bg-gray-400 cursor-not-allowed'
                                     : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/30 hover:shadow-xl'
                                     }`}
                             >
-                                <MdCheckCircle className="w-5 h-5" />
+                                <MdCheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                 {loading ? 'Registering...' : 'Register as Seller'}
                             </button>
                         </div>
 
                         {/* Login Link */}
-                        <p className="text-center text-sm text-gray-600 pt-4">
+                        <p className="text-center text-xs sm:text-sm text-gray-600 pt-3 sm:pt-4">
                             Already have an account?{' '}
                             <button
                                 type="button"
@@ -305,8 +305,8 @@ const SellerRegister = () => {
                 </div>
 
                 {/* Info Note */}
-                <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-sm text-orange-800">
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-orange-800">
                         <strong>Note:</strong> After registration, you'll need to complete KYC verification to start selling. You can upload your business licenses and documents from the seller dashboard.
                     </p>
                 </div>

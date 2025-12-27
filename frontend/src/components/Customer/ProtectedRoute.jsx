@@ -36,20 +36,22 @@ export const ProtectedAdminRoute = ({ children }) => {
     return children;
 };
 
-// Public Route (redirect to home if already logged in)
+
 export const PublicRoute = ({ children, redirectPath = '/' }) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const userRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
+    const currentPath = window.location.pathname;
 
     if (token && userRole) {
-        // Redirect based on user role
-        if (userRole === 'seller') {
+        // Only redirect if user is trying to access their own role's login page
+        if (userRole === 'seller' && (currentPath === '/seller-login' || currentPath === '/seller-register')) {
             return <Navigate to="/seller-home" replace />;
-        } else if (userRole === 'admin') {
+        } else if (userRole === 'admin' && currentPath === '/admin-login') {
             return <Navigate to="/admin-Dashboard" replace />;
-        } else if (userRole === 'customer') {
+        } else if (userRole === 'customer' && (currentPath === '/Login' || currentPath === '/Register')) {
             return <Navigate to={redirectPath} replace />;
         }
+        // Allow access to other role's login pages (e.g., customer can access seller-login)
     }
 
     return children;

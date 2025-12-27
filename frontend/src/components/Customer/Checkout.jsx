@@ -5,8 +5,7 @@ import { FaArrowLeft, FaMapMarkerAlt, FaPhone, FaUser } from 'react-icons/fa';
 const Checkout = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { product, quantity } = location.state || {}; // Handle direct buy from product page
-
+    const { product, quantity } = location.state || {};
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
@@ -24,12 +23,11 @@ const Checkout = () => {
         e.preventDefault();
         const shippingAddress = `${formData.fullName}, ${formData.addressLine}, ${formData.city}, ${formData.state} - ${formData.pincode}. Phone: ${formData.phone}`;
 
-        // Navigate to payment with address and optional product details (if direct buy)
         navigate('/payment', {
             state: {
                 shippingAddress,
-                product, // Pass through if exists
-                quantity // Pass through if exists
+                product, 
+                quantity 
             }
         });
     };
@@ -37,7 +35,7 @@ const Checkout = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-2xl mx-auto px-4">
-                {/* Header */}
+               
                 <div className="flex items-center gap-4 mb-8">
                     <button
                         onClick={() => navigate(-1)}
@@ -50,7 +48,7 @@ const Checkout = () => {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Personal Details */}
+                      
                         <div className="space-y-4">
                             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                                 <FaUser className="text-orange-500" /> Personal Details
@@ -87,7 +85,7 @@ const Checkout = () => {
                             </div>
                         </div>
 
-                        {/* Address Details */}
+                     
                         <div className="space-y-4 pt-4 border-t border-gray-100">
                             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                                 <FaMapMarkerAlt className="text-orange-500" /> Delivery Address

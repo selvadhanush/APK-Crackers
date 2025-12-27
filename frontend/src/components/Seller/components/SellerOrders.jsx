@@ -12,7 +12,28 @@ const SellerOrders = ({ onViewOrder }) => {
     const tabs = ['All', 'Paid', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
 
     useEffect(() => {
-        fetchOrders();
+        // Check KYC status before fetching
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                const kycStatus = userData.kycStatus || 'not_submitted';
+
+                if (kycStatus === 'approved') {
+                    fetchOrders();
+                } else {
+                    setError('Please complete KYC verification to view orders');
+                    setOrders([]);
+                    setLoading(false);
+                }
+            } catch (error) {
+                setError('Failed to load user data');
+                setLoading(false);
+            }
+        } else {
+            setError('Please login to view orders');
+            setLoading(false);
+        }
     }, []);
 
     const fetchOrders = async () => {
@@ -21,8 +42,14 @@ const SellerOrders = ({ onViewOrder }) => {
             setOrders(response.data);
             setLoading(false);
         } catch (err) {
-            console.error('Error fetching orders:', err);
-            setError('Failed to load orders');
+            // Silently handle KYC not approved error
+            if (err.response?.status === 403) {
+                // KYC not approved - show friendly message
+                setError('Please complete KYC verification to view orders');
+                setOrders([]);
+            } else {
+                setError('Failed to load orders');
+            }
             setLoading(false);
         }
     };
@@ -71,8 +98,8 @@ const SellerOrders = ({ onViewOrder }) => {
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${activeTab === tab
-                                        ? 'bg-orange-500 text-white shadow-md'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-orange-500 text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 {tab}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FaEye, FaEyeSlash, FaGoogle, FaFacebook, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import API from '../../api';
+import API from '../../../api';
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +31,6 @@ const Register = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-        // Clear error when user starts typing
         if (error) setError('');
     };
 
@@ -40,22 +39,24 @@ const Register = () => {
         setError('');
         setSuccess('');
 
-        // Validate password match
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
             return;
         }
 
-        // Validate password length
         if (formData.password.length < 8) {
             setError('Password must be at least 8 characters long');
+            return;
+        }
+
+        if (!formData.agreeToTerms) {
+            setError('You must accept the Terms of Service and Privacy Policy to continue');
             return;
         }
 
         setLoading(true);
 
         try {
-            // Prepare data to match backend schema
             const registrationData = {
                 name: `${formData.firstName} ${formData.lastName}`.trim(),
                 email: formData.email,
@@ -67,13 +68,11 @@ const Register = () => {
             const response = await API.post('/customer/auth/register', registrationData);
 
             if (response.data.token) {
-                // Store token in localStorage
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.user));
 
                 setSuccess('Registration successful! Redirecting...');
 
-                // Redirect to home or dashboard after 2 seconds
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 2000);
@@ -86,43 +85,41 @@ const Register = () => {
         }
     };
 
-    const inputClasses = "w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-gray-400";
-    const labelClasses = "block text-sm font-medium text-gray-700 mb-1.5";
+    const inputClasses = "w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-gray-400";
+    const labelClasses = "block text-xs sm:text-sm font-medium text-gray-700 mb-1.5";
 
     return (
-        <div className="min-h-screen bg-white flex justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="w-full max-w-3xl space-y-10">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <div className="min-h-screen bg-white flex justify-center py-6 sm:py-8 md:py-12 px-3 sm:px-4 lg:px-8">
+            <div className="w-full max-w-3xl space-y-6 sm:space-y-8 md:space-y-10">
+                <div className="text-center space-y-1.5 sm:space-y-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-gray-900">
                         Create Your Account
                     </h1>
-                    <p className="text-lg text-gray-500">
+                    <p className="text-sm sm:text-base md:text-lg text-gray-500">
                         Join APK Crackers and light up your celebrations
                     </p>
                 </div>
 
-                {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                        <p className="text-sm font-medium">{error}</p>
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg">
+                        <p className="text-xs sm:text-sm font-medium">{error}</p>
                     </div>
                 )}
 
-                {/* Success Message */}
                 {success && (
-                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                        <p className="text-sm font-medium">{success}</p>
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg">
+                        <p className="text-xs sm:text-sm font-medium">{success}</p>
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                    <button type="button" className="flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all">
-                        <FaGoogle className="w-5 h-5 text-red-500" />
-                        <span className="text-sm font-semibold text-gray-700">Google</span>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <button type="button" className="flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95">
+                        <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                        <span className="text-xs sm:text-sm font-semibold text-gray-700">Google</span>
                     </button>
-                    <button type="button" className="flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all">
-                        <FaFacebook className="w-5 h-5 text-blue-600" />
-                        <span className="text-sm font-semibold text-gray-700">Facebook</span>
+                    <button type="button" className="flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95">
+                        <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        <span className="text-xs sm:text-sm font-semibold text-gray-700">Facebook</span>
                     </button>
                 </div>
 
@@ -130,19 +127,19 @@ const Register = () => {
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-200"></div>
                     </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-white text-gray-500">Or register with email</span>
+                    <div className="relative flex justify-center text-xs sm:text-sm">
+                        <span className="px-3 sm:px-4 bg-white text-gray-500">Or register with email</span>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+                    <div className="space-y-4 sm:space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                            <FaUser className="text-orange-500" />
-                            <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                            <FaUser className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5" />
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Personal Information</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="firstName" className={labelClasses}>First Name</label>
                                 <input
@@ -171,11 +168,11 @@ const Register = () => {
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div className="sm:col-span-2">
                                 <label htmlFor="email" className={labelClasses}>Email Address</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <FaEnvelope className="text-gray-400" />
+                                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                                        <FaEnvelope className="text-gray-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </div>
                                     <input
                                         type="email"
@@ -183,18 +180,18 @@ const Register = () => {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        className={`${inputClasses} pl-11`}
+                                        className={`${inputClasses} pl-9 sm:pl-11`}
                                         placeholder="john@example.com"
                                         required
                                     />
                                 </div>
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div className="sm:col-span-2">
                                 <label htmlFor="phone" className={labelClasses}>Phone Number</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <FaPhone className="text-gray-400" />
+                                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                                        <FaPhone className="text-gray-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </div>
                                     <input
                                         type="tel"
@@ -202,7 +199,7 @@ const Register = () => {
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleChange}
-                                        className={`${inputClasses} pl-11`}
+                                        className={`${inputClasses} pl-9 sm:pl-11`}
                                         placeholder="+91 98765 43210"
                                         required
                                     />
@@ -211,13 +208,13 @@ const Register = () => {
                         </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                            <FaMapMarkerAlt className="text-orange-500" />
-                            <h3 className="text-lg font-semibold text-gray-900">Delivery Address</h3>
+                            <FaMapMarkerAlt className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5" />
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Delivery Address</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="addressLine1" className={labelClasses}>Address Line 1</label>
                                 <input
@@ -245,7 +242,7 @@ const Register = () => {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                                 <div>
                                     <label htmlFor="city" className={labelClasses}>City</label>
                                     <input
@@ -255,6 +252,7 @@ const Register = () => {
                                         value={formData.city}
                                         onChange={handleChange}
                                         className={inputClasses}
+                                        placeholder="City"
                                         required
                                     />
                                 </div>
@@ -268,6 +266,7 @@ const Register = () => {
                                         value={formData.state}
                                         onChange={handleChange}
                                         className={inputClasses}
+                                        placeholder="State"
                                         required
                                     />
                                 </div>
@@ -281,6 +280,7 @@ const Register = () => {
                                         value={formData.postalCode}
                                         onChange={handleChange}
                                         className={inputClasses}
+                                        placeholder="123456"
                                         pattern="[0-9]{6}"
                                         required
                                     />
@@ -289,9 +289,9 @@ const Register = () => {
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <h3 className="text-lg font-semibold text-gray-900 pb-2 border-b border-gray-100">Security</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4 sm:space-y-6">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 pb-2 border-b border-gray-100">Security</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="password" className={labelClasses}>Password</label>
                                 <div className="relative">
@@ -301,16 +301,17 @@ const Register = () => {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className={`${inputClasses} pr-11`}
+                                        className={`${inputClasses} pr-10 sm:pr-11`}
+                                        placeholder="Min. 8 characters"
                                         minLength="8"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer active:scale-95"
                                     >
-                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                        {showPassword ? <FaEyeSlash className="w-4 h-4 sm:w-5 sm:h-5" /> : <FaEye className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     </button>
                                 </div>
                             </div>
@@ -324,49 +325,50 @@ const Register = () => {
                                         name="confirmPassword"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
-                                        className={`${inputClasses} pr-11`}
+                                        className={`${inputClasses} pr-10 sm:pr-11`}
+                                        placeholder="Re-enter password"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer active:scale-95"
                                     >
-                                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                        {showConfirmPassword ? <FaEyeSlash className="w-4 h-4 sm:w-5 sm:h-5" /> : <FaEye className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-4 pt-4">
-                        <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
+                        <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 name="newsletter"
                                 checked={formData.newsletter}
                                 onChange={handleChange}
-                                className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 mt-0.5"
+                                className="w-4 h-4 sm:w-5 sm:h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 mt-0.5"
                             />
-                            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                            <span className="text-xs sm:text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
                                 Subscribe to our newsletter for exclusive offers and festival updates
                             </span>
                         </label>
 
-                        <label className="flex items-start gap-3 cursor-pointer group">
+                        <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 name="agreeToTerms"
                                 checked={formData.agreeToTerms}
                                 onChange={handleChange}
-                                className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 mt-0.5"
+                                className="w-4 h-4 sm:w-5 sm:h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 mt-0.5 flex-shrink-0"
                                 required
                             />
-                            <span className="text-sm text-gray-600">
+                            <span className="text-xs sm:text-sm text-gray-600">
                                 I agree to the{' '}
-                                <a href="#" className="font-semibold text-orange-600 hover:text-orange-500">Terms of Service</a>
-                                {' '}and{' '}
-                                <a href="#" className="font-semibold text-orange-600 hover:text-orange-500">Privacy Policy</a>
+                                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-orange-600 hover:text-orange-500 underline">Privacy Policy</a>
+                                {' and '}
+                                <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="font-semibold text-orange-600 hover:text-orange-500 underline">Terms & Conditions</a>
                             </span>
                         </label>
                     </div>
@@ -374,16 +376,16 @@ const Register = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full font-semibold text-lg py-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-orange-500/20 transition-all shadow-sm ${loading
-                                ? 'bg-orange-400 text-white cursor-not-allowed'
-                                : 'bg-orange-600 text-white hover:bg-orange-700'
+                        className={`w-full font-semibold text-sm sm:text-base md:text-lg py-3 sm:py-3.5 md:py-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-orange-500/20 transition-all shadow-sm active:scale-95 ${loading
+                            ? 'bg-orange-400 text-white cursor-not-allowed'
+                            : 'bg-orange-600 text-white hover:bg-orange-700'
                             }`}
                     >
                         {loading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
 
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-xs sm:text-sm text-gray-500">
                     Already have an account?{' '}
                     <a href="/Login" className="font-semibold text-orange-600 hover:text-orange-500">
                         Sign In

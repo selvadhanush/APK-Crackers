@@ -23,25 +23,48 @@ const Myproducts = ({ onNavigate }) => {
     ];
 
     useEffect(() => {
-        fetchProducts();
+        // Check KYC status before fetching
+        const user = sessionStorage.getItem('user') || localStorage.getItem('user');
+        if (user) {
+            try {
+                const userData = JSON.parse(user);
+                const kycStatus = userData.kycStatus || 'not_submitted';
+
+                if (kycStatus === 'approved') {
+                    fetchProducts();
+                } else {
+                    setError('Please complete KYC verification to view your products');
+                    setProducts([]);
+                    setLoading(false);
+                }
+            } catch (error) {
+                setError('Failed to load user data');
+                setLoading(false);
+            }
+        } else {
+            setError('Please login to view products');
+            setLoading(false);
+        }
     }, []);
 
     const fetchProducts = async () => {
         try {
-            console.log('🔍 Fetching seller products...');
             const response = await API.get('/products/my-products');
-            console.log('✅ Products response:', response.data);
 
             // Backend returns { count, products }, so extract the products array
             const productsData = response.data.products || response.data;
             setProducts(Array.isArray(productsData) ? productsData : []);
             setLoading(false);
         } catch (err) {
-            console.error('❌ Error fetching products:', err);
-            console.error('Error response:', err.response?.data);
-            console.error('Error status:', err.response?.status);
-            setError(err.response?.data?.message || 'Failed to load products');
-            setProducts([]); // Set empty array on error
+            // Silently handle KYC not approved error
+            if (err.response?.status === 403) {
+                // KYC not approved - show friendly message
+                setError('Please complete KYC verification to view your products');
+                setProducts([]);
+            } else {
+                setError(err.response?.data?.message || 'Failed to load products');
+                setProducts([]);
+            }
             setLoading(false);
         }
     };

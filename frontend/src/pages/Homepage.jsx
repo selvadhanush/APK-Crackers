@@ -1,22 +1,20 @@
 import { useState } from 'react';
-import Sidebar from '../components/Sidebar';
-import Products from '../components/Products';
-import Searchbar from '../components/Topbar';
+import Sidebar from '../components/Customer/Sidebar';
+import Products from '../components/Customer/Products';
+import Searchbar from '../components/Customer/Topbar';
 import Settings from './Settings';
+import LandingPage from '../components/Customer/LandingPage';
+import Footer from '../components/Customer/Footer';
+
 const Homepage = () => {
     return (
         <div className="flex w-full h-screen bg-gray-50">
-            {/* Sidebar Component */}
             <Sidebar />
-
-            {/* Right Section - Searchbar + Products */}
-            <div className="flex flex-col flex-1 overflow-hidden">
-                {/* Searchbar Component */}
+            <div className="flex flex-col flex-1 overflow-y-auto">
                 <Searchbar />
-
-                {/* Products Component */}
+                <LandingPage />
                 <Products />
-                
+                <Footer />
             </div>
         </div>
     );

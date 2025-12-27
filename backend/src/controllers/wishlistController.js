@@ -45,7 +45,20 @@ export const getWishlist = async (req, res) => {
     const items = await Wishlist.find({ customerId })
       .populate("productId");
 
-    res.json(items);
+    // Filter out items with null/deleted products
+    const validItems = items.filter(item => item.productId !== null);
+
+    // If any items had null products, remove them from database
+    if (validItems.length !== items.length) {
+      const invalidItemIds = items
+        .filter(item => item.productId === null)
+        .map(item => item._id);
+
+      await Wishlist.deleteMany({ _id: { $in: invalidItemIds } });
+      console.log(`🧹 Cleaned up ${invalidItemIds.length} deleted products from wishlist for user ${customerId}`);
+    }
+
+    res.json(validItems);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
