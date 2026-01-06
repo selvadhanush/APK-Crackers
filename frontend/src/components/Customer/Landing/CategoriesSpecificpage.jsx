@@ -4,20 +4,16 @@ import API from '../../../../api';
 import Topbar from '../Topbar';
 import Sidebar from '../Sidebar';
 import Footer from '../Footer';
-import { FaArrowLeft, FaFilter, FaTimes, FaClipboardList, FaStar, FaHeart } from 'react-icons/fa';
-import { BsFillBagHeartFill } from 'react-icons/bs';
+import { FaArrowLeft, FaFilter, FaTimes, FaClipboardList, FaStar } from 'react-icons/fa';
 import LegalDisclaimer from '../../Common/LegalDisclaimer';
 
 // Memoized Product Card Component for better performance
 const ProductCard = React.memo(({
     product,
     inCart,
-    inWishlist,
     addingToCart,
-    addingToWishlist,
     onProductClick,
-    onAddToCart,
-    onAddToWishlist
+    onAddToCart
 }) => {
     return (
         <div className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-100 cursor-pointer active:scale-98 flex flex-row sm:flex-col">
@@ -127,25 +123,6 @@ const ProductCard = React.memo(({
                         {product.discount_percentage}% OFF
                     </div>
                 )}
-
-                {/* Wishlist Button */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onAddToWishlist(product);
-                    }}
-                    disabled={addingToWishlist === product._id}
-                    className={`absolute top-2 left-2 sm:top-3 sm:left-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-lg transition-all z-20 ${inWishlist
-                        ? 'bg-red-500 text-white'
-                        : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-500'
-                        }`}
-                >
-                    {addingToWishlist === product._id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-orange-500"></div>
-                    ) : (
-                        <FaHeart className={`w-3 h-3 sm:w-4 sm:h-4 ${inWishlist ? 'fill-current' : ''}`} />
-                    )}
-                </button>
             </div>
         </div>
     );
@@ -163,11 +140,9 @@ const CategoriesSpecificpage = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-    // Cart and Wishlist states
+    // Cart states
     const [cartItems, setCartItems] = useState([]);
-    const [wishlistItems, setWishlistItems] = useState([]);
     const [addingToCart, setAddingToCart] = useState(null);
-    const [addingToWishlist, setAddingToWishlist] = useState(null);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -180,10 +155,9 @@ const CategoriesSpecificpage = () => {
         isGreenCrackers: false
     });
 
-    // Fetch cart and wishlist on mount
+    // Fetch cart on mount
     useEffect(() => {
         fetchCart();
-        fetchWishlist();
     }, []);
 
     // Fetch products for this category
@@ -210,17 +184,7 @@ const CategoriesSpecificpage = () => {
         }
     };
 
-    const fetchWishlist = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
 
-            const response = await API.get('/wishlist');
-            setWishlistItems(Array.isArray(response.data) ? response.data : []);
-        } catch (error) {
-            console.error('Error fetching wishlist:', error);
-        }
-    };
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -344,35 +308,7 @@ const CategoriesSpecificpage = () => {
         }
     }, [cartItems, navigate]);
 
-    const addToWishlist = useCallback(async (product) => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/Login');
-            return;
-        }
 
-        // Check if product is already in wishlist
-        const isInWishlist = wishlistItems.some(item =>
-            item.productId?._id === product._id
-        );
-
-        if (isInWishlist) {
-            navigate('/Wishlist');
-            return;
-        }
-
-        setAddingToWishlist(product._id);
-        try {
-            await API.post('/wishlist/add', {
-                productId: product._id
-            });
-            fetchWishlist(); // Refresh wishlist items
-        } catch (error) {
-            console.error('Add to wishlist error:', error);
-        } finally {
-            setAddingToWishlist(null);
-        }
-    }, [wishlistItems, navigate]);
 
     // Memoize cart and wishlist checks for better performance
     const isInCart = useCallback((productId) => {
@@ -381,11 +317,7 @@ const CategoriesSpecificpage = () => {
         );
     }, [cartItems]);
 
-    const isInWishlist = useCallback((productId) => {
-        return wishlistItems.some(item =>
-            item.productId?._id === productId
-        );
-    }, [wishlistItems]);
+
 
     return (
         <div className="flex w-full h-screen bg-gray-50 overflow-hidden">
@@ -461,12 +393,9 @@ const CategoriesSpecificpage = () => {
                                         key={product._id}
                                         product={product}
                                         inCart={isInCart(product._id)}
-                                        inWishlist={isInWishlist(product._id)}
                                         addingToCart={addingToCart}
-                                        addingToWishlist={addingToWishlist}
                                         onProductClick={handleProductClick}
                                         onAddToCart={addToCart}
-                                        onAddToWishlist={addToWishlist}
                                     />
                                 ))}
                             </div>

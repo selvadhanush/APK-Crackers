@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import showToast from '../../utils/toast.jsx';
 import { FaStar, FaClipboardList, FaCheckCircle, FaExclamationCircle, FaTag } from 'react-icons/fa';
-import { BsFillBagHeartFill } from 'react-icons/bs';
 import API from '../../../api';
 import { SkeletonGrid } from '../Common/SkeletonLoaders';
 
@@ -13,8 +12,6 @@ const Products = ({ filters = {} }) => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [wishlistItems, setWishlistItems] = useState([]);
-    const [togglingWishlist, setTogglingWishlist] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [cartItems, setCartItems] = useState([]);
@@ -85,7 +82,6 @@ const Products = ({ filters = {} }) => {
 
                 const promises = [productsPromise];
                 if (isLoggedIn) {
-                    promises.push(API.get('/wishlist'));
                     promises.push(API.get('/cart'));
                 }
 
@@ -101,14 +97,7 @@ const Products = ({ filters = {} }) => {
                 }
 
                 if (results[1]?.status === 'fulfilled') {
-                    const wishlistProductIds = (Array.isArray(results[1].value.data) ? results[1].value.data : [])
-                        .filter(item => item?.productId?._id)
-                        .map(item => item.productId._id);
-                    setWishlistItems(wishlistProductIds);
-                }
-
-                if (results[2]?.status === 'fulfilled') {
-                    setCartItems(results[2].value.data.items || []);
+                    setCartItems(results[1].value.data.items || []);
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -133,44 +122,7 @@ const Products = ({ filters = {} }) => {
         );
     }, [cartItems]);
 
-    const toggleWishlist = async (e, productId) => {
-        e.stopPropagation();
 
-        if (!isLoggedIn) {
-            showNotification('Please login to add items to wishlist', 'error');
-            setTimeout(() => navigate('/Login'), 1500);
-            return;
-        }
-
-        setTogglingWishlist(productId);
-
-        try {
-            const isInWishlist = wishlistItems.includes(productId);
-
-            if (isInWishlist) {
-                await API.delete(`/wishlist/remove/${productId}`);
-                setWishlistItems(prev => prev.filter(id => id !== productId));
-                showNotification('Removed from wishlist', 'success');
-            } else {
-                await API.post('/wishlist/add', { productId });
-                setWishlistItems(prev => [...prev, productId]);
-                showNotification('Added to wishlist!', 'success');
-            }
-        } catch (error) {
-            console.error('Wishlist error:', error);
-            if (error.response?.status === 401) {
-                showNotification('Session expired. Please login again', 'error');
-                setTimeout(() => navigate('/Login'), 1500);
-            } else if (error.response?.status === 400 && error.response?.data?.message === 'Already in wishlist') {
-                setWishlistItems(prev => [...prev, productId]);
-                showNotification('Already in wishlist', 'success');
-            } else {
-                showNotification(error.response?.data?.message || 'Failed to update wishlist', 'error');
-            }
-        } finally {
-            setTogglingWishlist(null);
-        }
-    };
 
     const handleProductClick = useCallback((productId) => {
         navigate(`/product/${productId}`);
@@ -333,23 +285,6 @@ const Products = ({ filters = {} }) => {
                             {discount}% OFF
                         </div>
                     )}
-
-                    <button
-                        onClick={(e) => toggleWishlist(e, product._id)}
-                        disabled={togglingWishlist === product._id}
-                        className="absolute top-2 sm:top-3 right-2 sm:right-3 w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-90"
-                    >
-                        {togglingWishlist === product._id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-orange-500"></div>
-                        ) : (
-                            <BsFillBagHeartFill
-                                className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${wishlistItems.includes(product._id)
-                                    ? 'text-red-500'
-                                    : 'text-gray-300 hover:text-red-400'
-                                    }`}
-                            />
-                        )}
-                    </button>
                     {availablePieces <= 0 && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                             <span className="text-white font-bold text-sm sm:text-base md:text-lg">Out of Stock</span>
@@ -358,7 +293,7 @@ const Products = ({ filters = {} }) => {
                 </div>
             </div>
         );
-    }, [wishlistItems, togglingWishlist, addingToCart, isInCart, getCartItem, handleProductClick, toggleWishlist, handleAddToEnquiry, navigate]);
+    }, [addingToCart, isInCart, getCartItem, handleProductClick, handleAddToEnquiry, navigate]);
 
     return (
         <div className="w-full bg-gray-50 pb-20 md:pb-0 mt-10">
