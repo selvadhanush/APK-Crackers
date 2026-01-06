@@ -11,8 +11,6 @@ const Searchbar = () => {
     const [userRole, setUserRole] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-    const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -460,7 +458,7 @@ const Searchbar = () => {
             <div className="px-2 sm:px-3 md:px-4 lg:px-6 py-2.5 sm:py-3 md:py-3.5">
                 <div className="flex items-center justify-between gap-1 sm:gap-2 md:gap-3 lg:gap-6">
                     {/* Left Section - Dynamic Page Title */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                             onClick={() => navigate('/')}
                             className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -517,7 +515,7 @@ const Searchbar = () => {
                     </div>
 
                     {/* Right Section - Icons and Buttons */}
-                    <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-3">
+                    <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-3 flex-shrink-0">
                         {/* Notification Bell */}
                         <div className="relative" ref={notificationRef}>
                             <button
@@ -636,7 +634,7 @@ const Searchbar = () => {
                                 {/* Login Button */}
                                 <button
                                     onClick={() => navigate('/Login')}
-                                    className="hidden md:block px-3 lg:px-4 xl:px-6 py-1.5 lg:py-2 xl:py-2.5 text-xs md:text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-full hover:border-orange-500 hover:text-orange-500 hover:bg-orange-50 transition-all cursor-pointer shadow-sm hover:shadow"
+                                    className="hidden md:block px-3 lg:px-4 xl:px-6 py-1.5 lg:py-2 xl:py-2.5 text-xs md:text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-full hover:border-orange-500 hover:text-orange-500 hover:bg-orange-50 transition-all cursor-pointer shadow-sm hover:shadow flex-shrink-0"
                                 >
                                     Login
                                 </button>
@@ -644,7 +642,7 @@ const Searchbar = () => {
                                 {/* Signup Button */}
                                 <button
                                     onClick={() => navigate('/Register')}
-                                    className="hidden md:block px-3 lg:px-4 xl:px-6 py-1.5 lg:py-2 xl:py-2.5 text-xs md:text-sm font-semibold text-white bg-orange-500 rounded-full hover:bg-orange-600 transition-all shadow-md hover:shadow-lg cursor-pointer"
+                                    className="hidden md:block px-3 lg:px-4 xl:px-6 py-1.5 lg:py-2 xl:py-2.5 text-xs md:text-sm font-semibold text-white bg-orange-500 rounded-full hover:bg-orange-600 transition-all shadow-md hover:shadow-lg cursor-pointer flex-shrink-0"
                                 >
                                     Sign Up
                                 </button>

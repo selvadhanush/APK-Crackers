@@ -6,7 +6,7 @@ import './App.css'
 import Login from './components/Customer/Login'
 import Register from './components/Customer/Register'
 import Settings from './pages/Settings'
-import SellerRegister from './components/Seller/components/SellerRegister'
+import SellerRegister from "./components/Seller/SellerRegistratation"
 import Productview from './components/Customer/Prouductview'
 import CartPage from './pages/CartPage'
 import EnquiryList from './components/Customer/EnquiryList'

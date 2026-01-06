@@ -15,8 +15,8 @@ import {
 } from 'react-icons/md';
 import { FaIdCard, FaFileAlt, FaStore as FaStoreLicense, FaFire, FaIndustry, FaWarehouse, FaTruck, FaCertificate } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import showToast from '../../../utils/toast.jsx';
-import API from '../../../../api';
+import showToast from '../../utils/toast';
+import API from '../../../api';
 import { ImageIcon } from 'lucide-react';
 
 const SellerRegister = () => {
@@ -32,6 +32,9 @@ const SellerRegister = () => {
     const [checkingEmail, setCheckingEmail] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [isSubmitted, setIsSubmitted] = useState(() => {
+        return localStorage.getItem('sellerPending') === 'true';
+    });
 
     // Step 1: Basic Registration Data - Load from localStorage
     const [registrationData, setRegistrationData] = useState(() => {
@@ -385,18 +388,14 @@ const SellerRegister = () => {
                 }
             });
 
-            if (response.data.token) {
+            if (response.data) {
                 clearFormData();
+                setSuccess('Registration successful! Your application has been received.');
+                localStorage.setItem('sellerPending', 'true');
+                setIsSubmitted(true);
 
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.seller));
-                localStorage.setItem('userRole', 'seller');
-
-                setSuccess('Registration successful! Your KYC documents are under review. Please note that document verification will take 2-3 working days. You will be notified once your account is approved. Redirecting...');
-
-                setTimeout(() => {
-                    navigate('/');
-                }, 4000); // Increased timeout to allow users to read the message
+                // Scroll to top to show success message
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (err) {
             console.error('Registration error:', err);
@@ -502,6 +501,125 @@ const SellerRegister = () => {
             ]
         }
     ];
+
+    if (isSubmitted) {
+  return (
+    <div className="fixed inset-0 w-screen h-screen bg-white overflow-hidden">
+      <div className="w-full h-full flex flex-col md:flex-row">
+        <div className="w-full md:w-[40%] h-[35%] md:h-full bg-[#0f172a] flex items-center justify-center relative px-6 sm:px-10 md:px-12 lg:px-20">
+          <div className="absolute -top-32 -left-32 w-[26rem] h-[26rem] bg-orange-500/10 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-32 -right-32 w-[26rem] h-[26rem] bg-orange-500/20 rounded-full blur-[120px]" />
+
+          <div className="relative z-10 text-center space-y-6 max-w-sm">
+            <div className="mx-auto flex items-center justify-center w-24 h-24 rounded-[2.2rem] bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl">
+              <MdStore className="w-11 h-11 text-orange-500" />
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-white leading-tight">
+                Welcome to the Community
+              </h1>
+              <p className="text-slate-400 text-sm lg:text-base">
+                Your details are being securely verified by our compliance team.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full md:w-[60%] h-[65%] md:h-full flex items-center justify-center px-6 sm:px-10 md:px-16 lg:px-24 overflow-y-auto">
+          <div className="w-full max-w-2xl space-y-8 py-10">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-semibold uppercase tracking-wide border border-green-100">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                Registration Confirmed
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+                Application Under Review
+              </h2>
+
+              <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
+                We have received your documents. Our team will manually review and verify the submitted information.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+                Verification Stages
+              </h3>
+
+              <div className="grid gap-3">
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4">
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-3.5 h-3.5 rounded-full bg-orange-500 ring-4 ring-orange-50 z-10" />
+                    <div className="w-px h-full bg-gray-200 absolute top-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      Document Validation
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      KYC, PAN, and GST documents review.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white rounded-2xl border border-gray-100 flex gap-4">
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-3.5 h-3.5 rounded-full bg-gray-300 z-10" />
+                    <div className="w-px h-full bg-gray-200 absolute top-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-400">
+                      License Verification
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      PESO license authenticity check.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white rounded-2xl border border-gray-100 flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-3.5 h-3.5 rounded-full bg-gray-300 z-10" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-400">
+                      Store Activation
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Dashboard access after approval.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+              <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-orange-600">
+                <MdEmail className="w-5 h-5" />
+              </div>
+              <p className="text-sm text-orange-900 leading-relaxed">
+                Verification usually takes
+                <span className="font-semibold ml-1">2–3 business days</span>.
+                Updates will be sent to your registered email address.
+              </p>
+            </div>
+
+            <button
+              onClick={() => navigate("/")}
+              className="w-full py-4 bg-[#0f172a] text-white font-semibold text-sm rounded-2xl hover:bg-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+            >
+              <span>Go to Homepage</span>
+              <MdArrowForward className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50 flex items-center justify-center p-3 sm:p-4 md:p-6 py-6 sm:py-8">
